@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Plano Interactivo</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #f5f5f5;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 280px;
+      background: #1e1e1e;
+      padding: 20px;
+      box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      background: #fff;
+      border: 2px solid #ccc;
+    }
+    h2 {
+      text-align: center;
+    }
+    label, p {
+      font-size: 14px;
+      margin-top: 10px;
+      color: #ddd;
+    }
+    input {
+      width: 100%;
+      padding: 5px;
+      margin-top: 5px;
+      border: none;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #2196f3;
+      color: white;
+      font-weight: bold;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #1976d2;
+    }
+    .clear-btn {
+      background: #f44336;
+    }
+    .clear-btn:hover {
+      background: #d32f2f;
+    }
+    .info {
+      margin-top: 20px;
+      padding: 10px;
+      background: #2c2c2c;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div>
+        <h2>Plano Interactivo</h2>
+        <label>Coordenada X:</label>
+        <input type="number" id="x" value="0">
+        <label>Coordenada Y:</label>
+        <input type="number" id="y" value="0">
+        <button onclick="dibujarPunto()">Dibujar Punto</button>
+        <button class="clear-btn" onclick="borrarCanvas()">Borrar Todo</button>
+      </div>
+      <div class="info">
+        <p><b>📍 Punto:</b> <span id="coord"></span></p>
+        <p><b>📐 Ángulo:</b> <span id="angulo"></span></p>
+        <p><b>📏 Distancia:</b> <span id="distancia"></span></p>
+      </div>
+    </div>
+    <div class="content">
+      <canvas id="plano" width="600" height="600"></canvas>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("plano");
+    const ctx = canvas.getContext("2d");
+    const centroX = canvas.width / 2;
+    const centroY = canvas.height / 2;
+
+    let puntos = [];
+
+    function dibujarPlano() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Ejes
+      ctx.strokeStyle = "#000";
+      ctx.lineWidth = 1.5;
+
+      // Eje X
+      ctx.beginPath();
+      ctx.moveTo(0, centroY);
+      ctx.lineTo(canvas.width, centroY);
+      ctx.stroke();
+
+      // Eje Y
+      ctx.beginPath();
+      ctx.moveTo(centroX, 0);
+      ctx.lineTo(centroX, canvas.height);
+      ctx.stroke();
+
+      // Re-dibujar puntos
+      puntos.forEach(p => dibujarPuntoEnCanvas(p.x, p.y));
+    }
+
+    function dibujarPunto() {
+      const x = parseInt(document.getElementById("x").value);
+      const y = parseInt(document.getElementById("y").value);
+
+      if (!isNaN(x) && !isNaN(y)) {
+        puntos.push({x, y});
+        actualizarInfo(x, y);
+        dibujarPlano();
+      }
+    }
+
+    function dibujarPuntoEnCanvas(x, y) {
+      const px = centroX + x * 20;
+      const py = centroY - y * 20;
+
+      ctx.beginPath();
+      ctx.arc(px, py, 5, 0, Math.PI * 2);
+      ctx.fillStyle = "red";
+      ctx.fill();
+
+      ctx.fillStyle = "black";
+      ctx.font = "12px Arial";
+      ctx.fillText(`(${x}, ${y})`, px + 8, py - 8);
+    }
+
+    function actualizarInfo(x, y) {
+      const angulo = Math.atan2(y, x) * (180 / Math.PI);
+      const distancia = Math.sqrt(x * x + y * y);
+
+      document.getElementById("coord").innerText = `(${x}, ${y})`;
+      document.getElementById("angulo").innerText = angulo.toFixed(2) + "°";
+      document.getElementById("distancia").innerText = distancia.toFixed(2);
+    }
+
+    function borrarCanvas() {
+      puntos = [];
+      dibujarPlano();
+      document.getElementById("coord").innerText = "";
+      document.getElementById("angulo").innerText = "";
+      document.getElementById("distancia").innerText = "";
+    }
+
+    // Dibujar punto con clic
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const px = e.clientX - rect.left;
+      const py = e.clientY - rect.top;
+
+      const x = Math.round((px - centroX) / 20);
+      const y = Math.round((centroY - py) / 20);
+
+      puntos.push({x, y});
+      actualizarInfo(x, y);
+      dibujarPlano();
+    });
+
+    // Inicializar
+    dibujarPlano();
+  </script>
+</body>
+</html>
