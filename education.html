@@ -3,75 +3,134 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cursos en mi Web</title>
+  <title>Sección de Cursos - Zenith</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f0f4f8;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 0;
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      color: #333;
     }
+
     header {
       background: #1a73e8;
       color: white;
-      padding: 15px;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.2rem;
+    }
+
+    .courses {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 30px;
+    }
+
+    .course-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+
+    .course-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .course-content {
+      padding: 20px;
       text-align: center;
     }
-    nav {
-      background: #fff;
-      padding: 10px;
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      border-bottom: 2px solid #ddd;
+
+    .course-content h3 {
+      margin: 0 0 10px;
+      font-size: 1.5rem;
+      color: #1a73e8;
     }
-    nav button {
+
+    .course-content p {
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 15px;
+    }
+
+    .course-content button {
       background: #1a73e8;
       color: white;
       border: none;
       padding: 10px 15px;
-      border-radius: 5px;
+      border-radius: 8px;
+      font-size: 1rem;
       cursor: pointer;
+      transition: background 0.2s ease;
     }
-    nav button:hover {
-      background: #155ab6;
-    }
-    .content {
-      padding: 20px;
-      text-align: center;
-    }
-    iframe {
-      width: 80%;
-      height: 450px;
-      border: none;
-      border-radius: 10px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      margin-top: 15px;
+
+    .course-content button:hover {
+      background: #0d47a1;
     }
   </style>
 </head>
 <body>
   <header>
-    <h1>📚 Cursos Interactivos</h1>
-    <p>Selecciona un curso para empezar</p>
+    <h1>📚 Sección de Cursos Zenith</h1>
+    <p>Explora diferentes áreas de conocimiento</p>
   </header>
 
-  <nav>
-    <button onclick="loadCourse('https://www.youtube.com/embed/HEfHFsfGXjs')">Matemáticas</button>
-    <button onclick="loadCourse('https://www.youtube.com/embed/VcT6jI5jLJM')">Ciencias</button>
-    <button onclick="loadCourse('https://www.youtube.com/embed/GFO_txvwK_c')">Programación</button>
-  </nav>
+  <section class="courses">
+    <!-- Matemáticas -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?math" alt="Curso de Matemáticas">
+      <div class="course-content">
+        <h3>Matemáticas</h3>
+        <p>Aprende desde lo básico hasta álgebra, geometría y más con ejercicios interactivos.</p>
+        <button onclick="window.open('https://www.khanacademy.org/math', '_blank')">Ir al curso</button>
+      </div>
+    </div>
 
-  <div class="content">
-    <h2 id="course-title">Selecciona un curso</h2>
-    <iframe id="course-frame" src=""></iframe>
-  </div>
+    <!-- Ciencias -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?science" alt="Curso de Ciencias">
+      <div class="course-content">
+        <h3>Ciencias</h3>
+        <p>Explora física, química y biología con explicaciones claras y ejemplos prácticos.</p>
+        <button onclick="window.open('https://www.ck12.org/student/', '_blank')">Ir al curso</button>
+      </div>
+    </div>
 
-  <script>
-    function loadCourse(url) {
-      document.getElementById("course-frame").src = url;
-      document.getElementById("course-title").innerText = "Curso en progreso...";
-    }
-  </script>
+    <!-- Programación -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?code" alt="Curso de Programación">
+      <div class="course-content">
+        <h3>Programación</h3>
+        <p>Domina HTML, CSS, JavaScript y Python creando tus propios proyectos.</p>
+        <button onclick="window.open('https://www.freecodecamp.org/', '_blank')">Ir al curso</button>
+      </div>
+    </div>
+
+    <!-- Historia -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?history" alt="Curso de Historia">
+      <div class="course-content">
+        <h3>Historia</h3>
+        <p>Descubre los eventos y personajes que marcaron el rumbo del mundo.</p>
+        <button onclick="window.open('https://www.worldhistory.org/', '_blank')">Ir al curso</button>
+      </div>
+    </div>
+  </section>
 </body>
 </html>
