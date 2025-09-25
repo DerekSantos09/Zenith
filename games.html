@@ -1,253 +1,136 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Education For All - Juegos Educativos</title>
-<style>
-  body {
-    font-family: 'Arial', sans-serif;
-    background: #e0f7fa;
-    margin: 0;
-    padding: 0;
-    color: #333;
-  }
-  h2, h3 {
-    text-align: center;
-  }
-  section {
-    padding: 2rem;
-  }
-  .juego {
-    background: #ffffff;
-    padding: 1.5rem;
-    margin: 2rem auto;
-    border-radius: 15px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-    max-width: 500px;
-    position: relative;
-  }
-  /* Memoria */
-  #memory-grid button {
-    height: 60px;
-    width: 60px;
-    font-size: 24px;
-    cursor: pointer;
-    border-radius: 8px;
-    border: none;
-    background: #81d4fa;
-    color: #ffffff;
-    transition: transform 0.3s, background 0.3s;
-    perspective: 1000px;
-  }
-  #memory-grid button:hover {
-    transform: scale(1.1);
-    background: #29b6f6;
-  }
-  /* Animación flip */
-  .flipped {
-    transform: rotateY(180deg);
-    background: #4fc3f7;
-  }
-  /* Matemáticas */
-  #math-answer {
-    width: 60px;
-    font-size: 16px;
-    padding: 5px;
-    margin-right: 10px;
-  }
-  button {
-    cursor: pointer;
-    padding: 6px 12px;
-    border: none;
-    border-radius: 8px;
-    background: #29b6f6;
-    color: #fff;
-    font-size: 16px;
-    transition: 0.3s;
-  }
-  button:hover {
-    background: #0288d1;
-    transform: scale(1.1);
-  }
-  /* Ahorcado */
-  #letter-input {
-    width: 40px;
-    font-size: 16px;
-    padding: 5px;
-    margin-right: 10px;
-  }
-  #word-display {
-    font-size: 24px;
-    letter-spacing: 10px;
-    margin-bottom: 10px;
-    text-align: center;
-  }
-  #hangman-feedback, #math-feedback, #memory-score {
-    text-align: center;
-    font-weight: bold;
-    margin-top: 10px;
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sección de Cursos - Zenith</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+      color: #333;
+    }
+
+    header {
+      background: #1a73e8;
+      color: white;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 2.2rem;
+    }
+
+    .courses {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      padding: 30px;
+    }
+
+    .course-card {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .course-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+    }
+
+    .course-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+
+    .course-content {
+      padding: 20px;
+      text-align: center;
+    }
+
+    .course-content h3 {
+      margin: 0 0 10px;
+      font-size: 1.5rem;
+      color: #1a73e8;
+    }
+
+    .course-content p {
+      font-size: 0.95rem;
+      color: #555;
+      margin-bottom: 15px;
+    }
+
+    .course-content button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .course-content button:hover {
+      background: #0d47a1;
+    }
+  </style>
 </head>
 <body>
+  <header>
+    <h1>📚 Sección de Juegos Zenith</h1>
+    <p>Explora diferentes áreas de conocimiento</p>
+  </header>
 
-<section id="juegos">
-  <h2>🎮 Juegos Educativos</h2>
-
-  <!-- Juego de Memoria -->
-  <div class="juego">
-    <h3>🧠 Memoria</h3>
-    <p style="text-align:center;">Encuentra las parejas iguales</p>
-    <div id="memory-grid" style="display:grid; grid-template-columns: repeat(4, 60px); gap:10px; justify-content:center;"></div>
-    <div id="memory-score">Puntaje: 0</div>
-  </div>
-
-  <!-- Juego de Matemáticas -->
-  <div class="juego">
-    <h3>➕ Sumas Rápidas</h3>
-    <p style="text-align:center;">Responde la suma correcta antes de 10 segundos</p>
-    <div style="text-align:center;">
-      <span id="math-question" style="font-size:1.2rem; margin-right:1rem;"></span>
-      <input type="number" id="math-answer">
-      <button onclick="checkMath()">Verificar</button>
-      <div id="math-feedback"></div>
-      <div id="math-score">Puntaje: 0</div>
+  <section class="courses">
+    <!-- Matemáticas -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?math" alt="Curso de Matemáticas">
+      <div class="course-content">
+        <h3>Sumas y Restas</h3>
+        <p>Practica tus habilidades de matemáticas sumando y restando.</p>
+        <button onclick="window.open('https://www.khanacademy.org/math', '_blank')">Ir al curso</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Juego de Palabras (Mini Ahorcado) -->
-  <div class="juego">
-    <h3>✏️ Mini Ahorcado</h3>
-    <p style="text-align:center;">Encuentra la palabra correcta</p>
-    <div style="text-align:center;">
-      <div id="word-display"></div>
-      <input type="text" id="letter-input" maxlength="1">
-      <button onclick="guessLetter()">Probar</button>
-      <div id="hangman-feedback"></div>
-      <div id="hangman-score">Puntaje: 0</div>
+    <!-- Ciencias -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?code" alt="Curso de Ciencias">
+      <div class="course-content">
+        <h3>Memorama</h3>
+        <p>Mejora la memoria con este juego.</p>
+        <button onclick="window.open('https://www.ck12.org/student/', '_blank')">Ir al curso</button>
+      </div>
     </div>
-  </div>
-</section>
 
-<!-- Sonidos -->
-<audio id="correct-sound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
-<audio id="wrong-sound" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg"></audio>
+    <!-- Programación -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?code" alt="Curso de Programación">
+      <div class="course-content">
+        <h3>Ahorcado</h3>
+        <p>Adivina la palabra.</p>
+        <button onclick="window.open('https://www.freecodecamp.org/', '_blank')">Ir al curso</button>
+      </div>
+    </div>
 
-<script>
-// ================= MEMORIA =================
-const memoryGrid = document.getElementById('memory-grid');
-const cards = ['A','A','B','B','C','C','D','D','E','E','F','F','G','G','H','H'];
-let shuffled = cards.sort(() => 0.5 - Math.random());
-let selected = [];
-let matched = [];
-let memoryScore = 0;
-
-shuffled.forEach((letter, idx) => {
-  const card = document.createElement('button');
-  card.textContent = "?";
-  card.addEventListener('click', () => flipCard(idx, card));
-  memoryGrid.appendChild(card);
-});
-
-function flipCard(idx, card) {
-  if (selected.length < 2 && !matched.includes(idx)) {
-    card.textContent = shuffled[idx];
-    card.classList.add('flipped');
-    selected.push({idx, card});
-    if (selected.length === 2) setTimeout(checkMatch, 500);
-  }
-}
-
-function checkMatch() {
-  const [first, second] = selected;
-  const correctSound = document.getElementById('correct-sound');
-  const wrongSound = document.getElementById('wrong-sound');
-  if (shuffled[first.idx] === shuffled[second.idx]) {
-    matched.push(first.idx, second.idx);
-    memoryScore += 10;
-    correctSound.play();
-  } else {
-    first.card.textContent = "?";
-    second.card.textContent = "?";
-    first.card.classList.remove('flipped');
-    second.card.classList.remove('flipped');
-    wrongSound.play();
-  }
-  selected = [];
-  document.getElementById('memory-score').textContent = `Puntaje: ${memoryScore}`;
-}
-
-// ================= SUMAS =================
-let num1, num2;
-const questionEl = document.getElementById('math-question');
-const feedbackEl = document.getElementById('math-feedback');
-let mathScore = 0;
-
-function generateQuestion() {
-  num1 = Math.floor(Math.random()*20)+1;
-  num2 = Math.floor(Math.random()*20)+1;
-  questionEl.textContent = `${num1} + ${num2} = ?`;
-}
-function checkMath() {
-  const answer = parseInt(document.getElementById('math-answer').value);
-  const correctSound = document.getElementById('correct-sound');
-  const wrongSound = document.getElementById('wrong-sound');
-  if(answer === num1+num2) {
-    feedbackEl.textContent = "✅ Correcto!";
-    mathScore += 10;
-    correctSound.play();
-  } else {
-    feedbackEl.textContent = `❌ Incorrecto. La respuesta es ${num1+num2}`;
-    wrongSound.play();
-  }
-  document.getElementById('math-answer').value = "";
-  document.getElementById('math-score').textContent = `Puntaje: ${mathScore}`;
-  generateQuestion();
-}
-generateQuestion();
-
-// ================= MINI AHORCADO =================
-const words = ['GATO','CASA','PERRO','SOL','LUNA'];
-let word = words[Math.floor(Math.random()*words.length)];
-let display = Array(word.length).fill("_");
-let hangmanScore = 0;
-let hangmanFeedback = document.getElementById('hangman-feedback');
-const wordDisplay = document.getElementById('word-display');
-wordDisplay.textContent = display.join(" ");
-
-function guessLetter() {
-  const letter = document.getElementById('letter-input').value.toUpperCase();
-  document.getElementById('letter-input').value = "";
-  const correctSound = document.getElementById('correct-sound');
-  const wrongSound = document.getElementById('wrong-sound');
-  let found = false;
-  for(let i=0;i<word.length;i++){
-    if(word[i]===letter){
-      display[i] = letter;
-      found = true;
-    }
-  }
-  wordDisplay.textContent = display.join(" ");
-  if(!found) {
-    hangmanFeedback.textContent = "Letra incorrecta!";
-    wrongSound.play();
-  } else {
-    hangmanFeedback.textContent = "¡Bien!";
-    correctSound.play();
-    hangmanScore += 5;
-  }
-  if(!display.includes("_")) {
-    hangmanFeedback.textContent = "🎉 ¡Ganaste!";
-    hangmanScore += 20;
-    // Reiniciar palabra
-    word = words[Math.floor(Math.random()*words.length)];
-    display = Array(word.length).fill("_");
-    wordDisplay.textContent = display.join(" ");
-  }
-  document.getElementById('hangman-score').textContent = `Puntaje: ${hangmanScore}`;
-}
-</script>
-
+    <!-- Historia -->
+    <div class="course-card">
+      <img src="https://picsum.photos/400/200?math" alt="Curso de Historia">
+      <div class="course-content">
+        <h3>Sudoku</h3>
+        <p>Mejora tus habilidades de agilidad y razonamiento.</p>
+        <button onclick="window.open('https://www.worldhistory.org/', '_blank')">Ir al curso</button>
+      </div>
+    </div>
+  </section>
 </body>
 </html>
