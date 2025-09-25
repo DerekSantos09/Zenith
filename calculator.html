@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora</title>
+<style>
+:root{
+  --bg-dark:#1e1e2f;
+  --bg-light:#f0f0f5;
+  --panel-dark:#2c2c3c;
+  --panel-light:#ffffff;
+  --accent:#7dd3fc;
+  --btn-dark:#3a3a4f;
+  --btn-light:#e0e0e0;
+  --text-dark:#e6eef8;
+  --text-light:#111;
+  --muted:#9aa8bf;
+  --radius:10px;
+}
+body{margin:0;font-family:Arial,sans-serif;display:flex;justify-content:center;padding:20px;transition:background 0.3s,color 0.3s;}
+.calc{width:400px;border-radius:var(--radius);padding:20px;box-shadow:0 8px 20px rgba(0,0,0,0.6);transition:background 0.3s,color 0.3s;}
+.display{padding:15px;border-radius:var(--radius);min-height:70px;display:flex;flex-direction:column;justify-content:center;align-items:flex-end;margin-bottom:10px;transition:background 0.3s,color 0.3s;}
+.display .small{font-size:14px;color:var(--muted);}
+.display .big{font-size:28px;font-weight:600;word-wrap:break-word;}
+.pad{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+button{padding:14px;font-size:16px;border:none;border-radius:var(--radius);cursor:pointer;transition:transform 0.1s, background 0.3s;}
+button:active{transform:translateY(2px);}
+.op{font-weight:600;}
+.wide{grid-column:span 2;}
+.history{border-radius:var(--radius);padding:10px;margin-top:10px;max-height:150px;overflow-y:auto;display:none;transition:background 0.3s,color 0.3s;}
+.toggle-history{margin-bottom:10px;cursor:pointer;text-align:center;font-weight:600;color:var(--accent);}
+.tutorial{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:var(--panel-dark);color:var(--text-dark);padding:20px;border-radius:var(--radius);max-width:90%;max-height:80%;overflow-y:auto;display:none;z-index:1000;box-shadow:0 8px 20px rgba(0,0,0,0.8);}
+.tutorial h2{margin-top:0;text-align:center;}
+.tutorial button{margin-top:10px;display:block;width:100%;background:var(--accent);color:#000;font-weight:600;}
+.error-msg{color:#ff6b6b;font-size:14px;text-align:right;margin-top:4px;}
+.dark-mode{--bg:var(--bg-dark);--panel:var(--panel-dark);--btn:var(--btn-dark);--text:var(--text-dark);}
+.light-mode{--bg:var(--bg-light);--panel:var(--panel-light);--btn:var(--btn-light);--text:var(--text-light);}
+body{background:var(--bg);color:var(--text);}
+.calc{background:var(--panel);}
+.display{background:rgba(255,255,255,0.05);color:var(--text);}
+button{background:var(--btn);color:var(--text);}
+.history{background:rgba(255,255,255,0.05);color:var(--text);}
+</style>
+</head>
+<body class="dark-mode">
+<main class="calc">
+  <div class="toggle-history" id="toggleHistory">Mostrar Historial ▼</div>
+  <section class="display" aria-live="polite">
+    <div id="prev" class="small"></div>
+    <div id="out" class="big">0</div>
+    <div id="error" class="error-msg"></div>
+  </section>
+
+  <section class="pad">
+    <button class="op" data-action="clear">C</button>
+    <button class="op" data-action="back">⌫</button>
+    <button class="op" data-action="(">(</button>
+    <button class="op" data-action=")">)</button>
+    <button class="op" data-action="/">÷</button>
+
+    <button data-num="7">7</button>
+    <button data-num="8">8</button>
+    <button data-num="9">9</button>
+    <button class="op" data-action="^">^</button>
+    <button class="op" data-action="*">×</button>
+
+    <button data-num="4">4</button>
+    <button data-num="5">5</button>
+    <button data-num="6">6</button>
+    <button class="op" data-action="√">√</button>
+    <button class="op" data-action="-">−</button>
+
+    <button data-num="1">1</button>
+    <button data-num="2">2</button>
+    <button data-num="3">3</button>
+    <button class="op" data-action="!">!</button>
+    <button class="op" data-action="+">+</button>
+
+    <button class="wide" data-num="0">0</button>
+    <button data-num=".">.</button>
+    <button class="op" data-action="sin">sin</button>
+    <button class="op" data-action="cos">cos</button>
+    <button class="op" data-action="tan">tan</button>
+
+    <button class="wide" data-action="log">log</button>
+    <button class="op" data-action="=">=</button>
+
+    <button class="wide" id="toggleMode">Cambiar Modo</button>
+    <button class="wide" id="showTutorial">Ayuda</button>
+  </section>
+
+  <div class="history" id="history"></div>
+
+  <div class="tutorial" id="tutorial">
+    <h2>Cómo usar la calculadora</h2>
+    <ul>
+      <li>Trigonometría: sin, cos, tan usan <strong>grados</strong>. Ejemplo: sin(90) = 1</li>
+      <li>Raíz cuadrada: √16 = 4</li>
+      <li>Potencia: usar ^. Ejemplo: 2^3 = 8</li>
+      <li>Factorial: n! solo enteros positivos. Ejemplo: 5! = 120</li>
+      <li>Logaritmo base 10: log(100) = 2</li>
+      <li>Paréntesis: puedes agrupar operaciones (2+3)*4</li>
+      <li>Historial: mostrar/ocultar operaciones anteriores</li>
+      <li>Modo: cambiar entre oscuro y claro</li>
+      <li>Resultados se redondean a 6 decimales</li>
+      <li>Se muestran pasos de simplificación de operaciones complejas</li>
+    </ul>
+    <button id="closeTutorial">Cerrar Ayuda</button>
+  </div>
+</main>
+
+<script>
+(function(){
+const out=document.getElementById('out');
+const prev=document.getElementById('prev');
+const hist=document.getElementById('history');
+const toggleHistoryBtn=document.getElementById('toggleHistory');
+const toggleModeBtn=document.getElementById('toggleMode');
+const showTutorialBtn=document.getElementById('showTutorial');
+const tutorial=document.getElementById('tutorial');
+const closeTutorialBtn=document.getElementById('closeTutorial');
+const errorDiv=document.getElementById('error');
+const body=document.body;
+
+let current='0';
+let expression='';
+let lastWasEquals=false;
+
+function render(){ out.textContent=current; prev.textContent=expression; }
+function addHistory(text){ const div=document.createElement('div'); div.textContent=text; hist.prepend(div); }
+function factorial(n){ return n<=1?1:n*factorial(n-1); }
+function degToRad(deg){ return deg * Math.PI / 180; }
+function showError(msg){ errorDiv.textContent=msg; setTimeout(()=>{ errorDiv.textContent=''; },4000); }
+function roundResult(val){ return Math.round(val*1e6)/1e6; }
+
+// Evalúa paso a paso
+function evalStepByStep(expr){
+  let steps=[];
+  let temp=expr.replace(/\^/g,'**');
+  try{
+    let regex=/\([^()]*\)/;
+    while(regex.test(temp)){
+      let match=temp.match(regex)[0];
+      let val=roundResult(Function('return ('+match+')')());
+      steps.push(match+' = '+val);
+      temp=temp.replace(match,val);
+    }
+    let finalRes=roundResult(Function('return ('+temp+')')());
+    steps.push(temp+' = '+finalRes);
+    return {final:finalRes,steps:steps};
+  }catch(e){ throw e; }
+}
+
+function applyOp(op){
+  errorDiv.textContent='';
+  if(op==='clear'){ current='0'; expression=''; lastWasEquals=false; render(); return; }
+  if(op==='back'){ current=lastWasEquals?'0':(current.length>1?current.slice(0,-1):'0'); lastWasEquals=false; render(); return; }
+
+  if(op==='=' || ['sin','cos','tan','log','!','√'].includes(op)){
+    try{
+      let exp=expression+current;
+      let res;
+      if(op==='sin'){ res=roundResult(Math.sin(degToRad(parseFloat(current)))); addHistory('sin('+current+'°) = '+res); }
+      else if(op==='cos'){ res=roundResult(Math.cos(degToRad(parseFloat(current)))); addHistory('cos('+current+'°) = '+res); }
+      else if(op==='tan'){ 
+        if((parseFloat(current)%180)===90){ throw 'Tangente indefinida. Recuerda: tan(90°+k*180°) no existe'; }
+        res=roundResult(Math.tan(degToRad(parseFloat(current)))); addHistory('tan('+current+'°) = '+res);
+      }
+      else if(op==='log'){ 
+        if(parseFloat(current)<=0){ throw 'Logaritmo indefinido. Recuerda: solo números positivos'; }
+        res=roundResult(Math.log10(parseFloat(current))); addHistory('log('+current+') = '+res);
+      }
+      else if(op==='!'){ 
+        if(parseInt(current)<0){ throw 'Factorial no definido para negativos'; }
+        res=factorial(parseInt(current)); addHistory(current+'! = '+res);
+      }
+      else if(op==='√'){ 
+        if(parseFloat(current)<0){ throw 'Raíz de número negativo'; }
+        res=roundResult(Math.sqrt(parseFloat(current))); addHistory('√'+current+' = '+res);
+      }
+      else{
+        let stepResult=evalStepByStep(expression+current);
+        stepResult.steps.forEach(s=>addHistory(s));
+        res=stepResult.final;
+      }
+      current=String(res);
+      expression='';
+      lastWasEquals=true;
+    }catch(e){ current='Error'; expression=''; lastWasEquals=true; showError(e); }
+    render(); return;
+  }
+
+  if(lastWasEquals){ expression=current+op; lastWasEquals=false; current='0'; render(); return; }
+  expression+=current+op;
+  current='0';
+  render();
+}
+
+function inputNum(n){
+  if(lastWasEquals){ expression=''; lastWasEquals=false; current='0'; }
+  if(n==='.' && current.includes('.')) return;
+  current=(current==='0' && n!=='.')? n:current+n;
+  render();
+}
+
+document.querySelectorAll('[data-num]').forEach(btn=>{ btn.addEventListener('click',()=>inputNum(btn.getAttribute('data-num'))); });
+document.querySelectorAll('[data-action]').forEach(btn=>{ btn.addEventListener('click',()=>applyOp(btn.getAttribute('data-action'))); });
+
+window.addEventListener('keydown',(e)=>{
+  if((e.key>='0' && e.key<='9')||e.key==='.'){ inputNum(e.key); e.preventDefault(); return; }
+  if(e.key==='Enter' || e.key==='='){ applyOp('='); e.preventDefault(); return; }
+  if(e.key==='Backspace'){ applyOp('back'); e.preventDefault(); return; }
+  if(e.key==='Escape'){ applyOp('clear'); e.preventDefault(); return; }
+  if(['+','-','*','/','(',')'].includes(e.key)){ applyOp(e.key); e.preventDefault(); return; }
+});
+
+toggleHistoryBtn.addEventListener('click',()=>{
+  if(hist.style.display==='none'){ hist.style.display='block'; toggleHistoryBtn.textContent='Ocultar Historial ▲'; }
+  else{ hist.style.display='none'; toggleHistoryBtn.textContent='Mostrar Historial ▼'; }
+});
+
+toggleModeBtn.addEventListener('click',()=>{
+  if(body.classList.contains('dark-mode')){ body.classList.replace('dark-mode','light-mode'); }
+  else{ body.classList.replace('light-mode','dark-mode'); }
+});
+
+showTutorialBtn.addEventListener('click',()=>{ tutorial.style.display='block'; });
+closeTutorialBtn.addEventListener('click',()=>{ tutorial.style.display='none'; });
+
+hist.style.display='none';
+render();
+})();
+</script>
+</body>
+</html>
