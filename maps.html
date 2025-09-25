@@ -1,1 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Mapa de Universidades del Mundo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 90vh; width: 100%; }
+    </style>
+</head>
+<body>
+    <h2>Mapa de Universidades del Mundo (Ejemplo)</h2>
+    <div id="map"></div>
 
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        // Inicializar el mapa centrado en el mundo
+        var map = L.map('map').setView([20, 0], 2);
+
+        // Añadir capa base de OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Dataset de ejemplo: puedes agregar más universidades aquí
+        var universidades = [
+            {
+                nombre: "Universidad Nacional Autónoma de México",
+                pais: "México",
+                lat: 19.3322,
+                lon: -99.1872
+            },
+            {
+                nombre: "Harvard University",
+                pais: "Estados Unidos",
+                lat: 42.3770,
+                lon: -71.1167
+            },
+            {
+                nombre: "Universidad de Buenos Aires",
+                pais: "Argentina",
+                lat: -34.5997,
+                lon: -58.3732
+            },
+            {
+                nombre: "University of Oxford",
+                pais: "Reino Unido",
+                lat: 51.7548,
+                lon: -1.2544
+            }
+        ];
+
+        // Agregar marcadores al mapa
+        universidades.forEach(function(uni) {
+            L.marker([uni.lat, uni.lon])
+                .addTo(map)
+                .bindPopup('<b>' + uni.nombre + '</b><br>' + uni.pais);
+        });
+    </script>
+</body>
+</html>
