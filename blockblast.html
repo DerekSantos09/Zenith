@@ -47,15 +47,17 @@
       margin-top: 10px;
       user-select: none;
       position: relative;
+      touch-action: none;
     }
     .cell {
       width: 36px;
       height: 36px;
       background: #22283180;
       border-radius: 7px;
-      transition: background 0.2s, box-shadow 0.2s;
+      transition: background 0.2s, box-shadow 0.2s, border 0.18s;
       box-shadow: 0 2px 6px #0003;
       cursor: pointer;
+      border: 2px solid transparent;
     }
     .cell.filled {
       background: linear-gradient(145deg, #FFD600, #FF6B00 60%, #00FFC6 100%);
@@ -68,11 +70,16 @@
       position: relative;
       z-index: 1;
     }
+    .cell.invalid {
+      border: 2px solid #ff4242;
+      background: #b71c1c88 !important;
+    }
     #pieces {
       display: flex;
       gap: 40px;
       margin-bottom: 18px;
       justify-content: center;
+      position: relative;
     }
     .piece {
       display: grid;
@@ -80,16 +87,20 @@
       background: #2c303a;
       border-radius: 12px;
       padding: 10px;
-      cursor: pointer;
+      cursor: grab;
       box-shadow: 0 3px 12px #0005;
       border: 3px solid transparent;
       transition: border 0.2s, box-shadow 0.2s, transform 0.15s;
+      position: relative;
+      z-index: 1;
+      touch-action: none;
     }
-    .piece.selected {
+    .piece.selected, .piece.dragging {
       border: 3px solid #FFD600;
       box-shadow: 0 4px 18px #FFD600aa;
       transform: scale(1.11);
-      z-index: 2;
+      z-index: 100;
+      cursor: grabbing;
     }
     .piece-cell {
       width: 26px;
@@ -98,6 +109,14 @@
       border-radius: 6px;
       box-shadow: 0 1px 6px #FFD60055, 0 1px 4px #00FFC655;
       transition: background 0.2s;
+    }
+    #drag-preview {
+      pointer-events: none;
+      position: fixed;
+      z-index: 999;
+      opacity: 0.92;
+      transform: translate(-50%, -50%) scale(1.13);
+      display: none;
     }
     #game-over {
       display: none;
@@ -176,6 +195,8 @@
   <audio id="place-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12f91b1b77.mp3"></audio>
   <audio id="clear-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12f91b1b77.mp3"></audio>
   <audio id="fail-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12f91b1b77.mp3"></audio>
+  <!-- Drag Preview piece -->
+  <div id="drag-preview"></div>
   <script>
     // -- CONFIGURACIÓN --
     const BOARD_SIZE = 9;
@@ -200,26 +221,27 @@
     const placeSound = document.getElementById('place-sound');
     const clearSound = document.getElementById('clear-sound');
     const failSound = document.getElementById('fail-sound');
+    const dragPreview = document.getElementById('drag-preview');
 
     function createBoard(){
       board = Array.from({length:BOARD_SIZE},()=>Array(BOARD_SIZE).fill(0));
     }
-    function renderBoard(){
+
+    function renderBoard(previewHighlight = null, invalidPreview = false){
       boardElem.innerHTML = '';
       for(let r=0;r<BOARD_SIZE;r++){
         for(let c=0;c<BOARD_SIZE;c++){
           const cell = document.createElement('div');
           cell.className = 'cell'+(board[r][c]?' filled':'');
-          if(selectedPiece && previewPos &&
-             isPreviewCell(r,c,selectedPiece,previewPos[0],previewPos[1]))
-            cell.classList.add('preview');
+          if(previewHighlight && isPreviewCell(r, c, previewHighlight.piece, previewHighlight.row, previewHighlight.col)) {
+            cell.classList.add(invalidPreview ? 'invalid' : 'preview');
+          }
           cell.addEventListener('click',()=>onBoardClick(r,c));
-          cell.addEventListener('mouseenter',()=>onPreview(r,c));
-          cell.addEventListener('mouseleave',()=>clearPreview());
           boardElem.appendChild(cell);
         }
       }
     }
+
     function renderPieces(){
       piecesElem.innerHTML = '';
       pieces.forEach((piece,idx)=>{
@@ -227,16 +249,19 @@
         pe.className = 'piece'+(selectedPieceIdx===idx?' selected':'');
         pe.style.gridTemplateColumns = `repeat(${piece[0].length},1fr)`;
         pe.style.gridTemplateRows = `repeat(${piece.length},1fr)`;
-        pe.addEventListener('click',(e)=>{
-          e.stopPropagation();
-          onPieceClick(idx);
-        });
+        pe.draggable = false; // drag & drop personalizado, no HTML5
+
+        // Mouse events
+        pe.addEventListener('mousedown', (e) => onPieceDragStart(e, idx));
+        pe.addEventListener('touchstart', (e) => onPieceDragStart(e, idx));
+        
         for(let r=0;r<piece.length;r++)
           for(let c=0;c<piece[r].length;c++)
             pe.appendChild(piece[r][c]?createPieceCell():createEmptyCell());
         piecesElem.appendChild(pe);
       });
     }
+
     function createPieceCell(){
       const pc=document.createElement('div');
       pc.className='piece-cell';
@@ -315,22 +340,9 @@
       gameOverElem.style.display='none';
     }
     // --- INTERACCIÓN SIMPLE ---
-    function onPieceClick(idx){
-      if(selectedPieceIdx===idx){
-        selectedPiece=null;
-        selectedPieceIdx=null;
-        previewPos=null;
-      }else{
-        selectedPiece=pieces[idx];
-        selectedPieceIdx=idx;
-        previewPos=null;
-      }
-      renderPieces();
-      renderBoard();
-    }
     function onBoardClick(r,c){
-      if(!selectedPiece)return;
-      if(canPlace(selectedPiece,r,c)){
+      // Solo para touch rápido, deprecado por drag&drop
+      if(selectedPiece && canPlace(selectedPiece,r,c)){
         placePiece(selectedPiece,r,c);
         pieces.splice(selectedPieceIdx,1);
         selectedPiece=null;
@@ -350,19 +362,131 @@
             return true;
       return false;
     }
-    function onPreview(r,c){
-      if(selectedPiece && canPlace(selectedPiece,r,c)){
-        previewPos=[r,c];
+
+    // --- DRAG AND DROP ÉPICO ---
+    let dragging = false;
+    let dragData = null;
+
+    function getCellFromPointer(e) {
+      const rect = boardElem.getBoundingClientRect();
+      let clientX, clientY;
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+      const cellWidth = rect.width / BOARD_SIZE;
+      const cellHeight = rect.height / BOARD_SIZE;
+      const col = Math.floor(x / cellWidth);
+      const row = Math.floor(y / cellHeight);
+      if(col<0||col>=BOARD_SIZE||row<0||row>=BOARD_SIZE) return null;
+      return {row, col};
+    }
+
+    function onPieceDragStart(e, idx){
+      e.preventDefault();
+      dragging = true;
+      selectedPiece = pieces[idx];
+      selectedPieceIdx = idx;
+      previewPos = null;
+      dragData = {idx, offsetX: 0, offsetY: 0};
+      renderPieces();
+
+      // Render preview piece
+      renderDragPreview(selectedPiece);
+
+      // Coloca el preview cerca del mouse/touch
+      moveDragPreview(e);
+
+      // Eventos globales
+      document.addEventListener('mousemove', onPieceDragMove);
+      document.addEventListener('touchmove', onPieceDragMove, {passive:false});
+      document.addEventListener('mouseup', onPieceDragEnd);
+      document.addEventListener('touchend', onPieceDragEnd);
+    }
+
+    function onPieceDragMove(e){
+      e.preventDefault && e.preventDefault();
+
+      moveDragPreview(e);
+
+      // Si estamos sobre el tablero, muestra preview
+      const cell = getCellFromPointer(e);
+      if(cell && selectedPiece){
+        previewPos = [cell.row, cell.col];
+        let valid = canPlace(selectedPiece, cell.row, cell.col);
+        renderBoard({piece: selectedPiece, row: cell.row, col: cell.col}, !valid);
+      } else {
+        previewPos = null;
         renderBoard();
       }
     }
-    function clearPreview(){
-      if(previewPos){previewPos=null;renderBoard();}
+
+    function onPieceDragEnd(e){
+      // ¿Soltó sobre el tablero y es válido?
+      let placed = false;
+      const cell = getCellFromPointer(e);
+      if(cell && selectedPiece && canPlace(selectedPiece, cell.row, cell.col)){
+        placePiece(selectedPiece, cell.row, cell.col);
+        pieces.splice(selectedPieceIdx,1);
+        selectedPiece=null;
+        selectedPieceIdx=null;
+        previewPos=null;
+        renderPieces();
+        updateScore();
+        if(pieces.length===0)newPieces();
+        renderBoard();
+        if(isGameOver())setTimeout(showGameOver,300);
+        placed = true;
+      } else {
+        renderBoard();
+      }
+      // Limpia drag
+      dragging = false;
+      dragData = null;
+      hideDragPreview();
+      document.removeEventListener('mousemove', onPieceDragMove);
+      document.removeEventListener('touchmove', onPieceDragMove, {passive:false});
+      document.removeEventListener('mouseup', onPieceDragEnd);
+      document.removeEventListener('touchend', onPieceDragEnd);
     }
+
+    function renderDragPreview(piece){
+      dragPreview.innerHTML = '';
+      dragPreview.style.display = 'block';
+      dragPreview.style.gridTemplateColumns = `repeat(${piece[0].length},1fr)`;
+      dragPreview.style.gridTemplateRows = `repeat(${piece.length},1fr)`;
+      dragPreview.className = 'piece dragging';
+      dragPreview.style.position = 'fixed';
+      for(let r=0;r<piece.length;r++)
+        for(let c=0;c<piece[r].length;c++)
+          dragPreview.appendChild(piece[r][c]?createPieceCell():createEmptyCell());
+    }
+    function moveDragPreview(e){
+      let clientX, clientY;
+      if (e.touches && e.touches.length > 0) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      dragPreview.style.left = (clientX)+'px';
+      dragPreview.style.top = (clientY)+'px';
+    }
+    function hideDragPreview(){
+      dragPreview.style.display = 'none';
+    }
+
     // --- SONIDOS ---
     function playSound(audio){try{audio.currentTime=0;audio.play();}catch(e){}}
     // --- REINICIAR ---
     restartBtn.addEventListener('click',startGame);
+
     // --- INICIO ---
     function startGame(){
       createBoard();
