@@ -1,205 +1,274 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zenith - Mapas Mentales y Conceptuales</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #1e1e1e;
-      color: #f5f5f5;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 1rem;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zenith - Mapas Mentales Mejorados</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: #1e1e1e;
+    color: #f5f5f5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+  }
 
-    header {
-      background: #0d6efd;
-      width: 100%;
-      padding: 1rem;
-      text-align: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-      margin-bottom: 1rem;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    }
+  header {
+    background: #0d6efd;
+    width: 100%;
+    padding: 1rem;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
 
-    #mapaCanvas {
-      background: #2b2b2b;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      cursor: grab;
-    }
+  #mapaCanvas {
+    background: #2b2b2b;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    cursor: grab;
+  }
 
-    .controls {
-      margin-bottom: 1rem;
-      text-align: center;
-    }
+  .controls {
+    margin-bottom: 1rem;
+    text-align: center;
+  }
 
-    input, button {
-      padding: 0.5rem;
-      border-radius: 6px;
-      border: none;
-      margin: 0.3rem;
-      font-size: 1rem;
-    }
+  input, select, button {
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: none;
+    margin: 0.3rem;
+    font-size: 1rem;
+  }
 
-    button {
-      background: #0d6efd;
-      color: #fff;
-      cursor: pointer;
-    }
+  button {
+    background: #0d6efd;
+    color: #fff;
+    cursor: pointer;
+  }
 
-    button:hover {
-      background: #0b5ed7;
-    }
-  </style>
+  button:hover {
+    background: #0b5ed7;
+  }
+</style>
 </head>
 <body>
-  <header>Zenith - Generador de Mapas Mentales y Conceptuales</header>
+<header>Zenith - Mapas Mentales Mejorados</header>
 
-  <div class="controls">
-    <input type="text" id="textoNodo" placeholder="Escribe una idea...">
-    <button onclick="agregarNodo()">➕ Agregar nodo</button>
-    <button onclick="modoConexion()">🔗 Conectar nodos</button>
-  </div>
+<div class="controls">
+  <input type="text" id="textoNodo" placeholder="Escribe una idea...">
+  <select id="formaNodo">
+    <option value="circulo">Círculo</option>
+    <option value="rectangulo">Rectángulo</option>
+    <option value="ovalo">Óvalo</option>
+  </select>
+  <input type="color" id="colorNodo" value="#0d6efd">
+  <button onclick="agregarNodo()">➕ Agregar nodo</button>
+  <button onclick="modoConexion()">🔗 Conectar nodos</button>
+  <button onclick="modoBorrar()">🗑️ Borrar</button>
+  <button onclick="guardarMapa()">💾 Guardar mapa</button>
+  <input type="file" id="fileInput" style="display:none" onchange="cargarMapa(event)">
+  <button onclick="document.getElementById('fileInput').click()">📂 Cargar mapa</button>
+</div>
 
-  <canvas id="mapaCanvas" width="900" height="550"></canvas>
+<canvas id="mapaCanvas" width="900" height="550"></canvas>
 
-  <script>
-    const canvas = document.getElementById("mapaCanvas");
-    const ctx = canvas.getContext("2d");
+<script>
+const canvas = document.getElementById("mapaCanvas");
+const ctx = canvas.getContext("2d");
 
-    let nodos = [{texto: "Idea Central", x: 450, y: 275}];
-    let conexiones = [];
+let nodos = [{texto: "Idea Central", x: 450, y: 275, forma: "circulo", color: "#0d6efd"}];
+let conexiones = [];
 
-    let arrastrando = null;
-    let offsetX = 0, offsetY = 0;
-    let conectando = false;
-    let nodoSeleccionado = null;
+let arrastrando = null;
+let offsetX = 0, offsetY = 0;
 
-    function dibujar() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+let conectando = false;
+let nodoSeleccionado = null;
 
-      // Dibujar conexiones
-      conexiones.forEach(c => {
-        const n1 = nodos[c.desde];
-        const n2 = nodos[c.hacia];
-        ctx.beginPath();
-        ctx.moveTo(n1.x, n1.y);
-        ctx.lineTo(n2.x, n2.y);
-        ctx.strokeStyle = "#aaa";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      });
+let borrando = false;
 
-      // Dibujar nodos
-      nodos.forEach((n, i) => {
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, 50, 0, Math.PI * 2);
-        ctx.fillStyle = "#0d6efd";
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+// DIBUJAR NODOS Y CONEXIONES
+function dibujar() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = "#fff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.font = "14px Arial";
-        ctx.fillText(n.texto, n.x, n.y);
+  // Conexiones
+  conexiones.forEach(c => {
+    const n1 = nodos[c.desde];
+    const n2 = nodos[c.hacia];
+    ctx.beginPath();
+    ctx.moveTo(n1.x, n1.y);
+    ctx.lineTo(n2.x, n2.y);
+    ctx.strokeStyle = "#aaa";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  });
 
-        // Marcar el nodo seleccionado para conexión
-        if (nodoSeleccionado === i && conectando) {
-          ctx.beginPath();
-          ctx.arc(n.x, n.y, 55, 0, Math.PI * 2);
-          ctx.strokeStyle = "yellow";
-          ctx.lineWidth = 3;
-          ctx.stroke();
-        }
-      });
+  // Nodos
+  nodos.forEach((n,i)=>{
+    ctx.fillStyle = n.color;
+    ctx.strokeStyle = "#fff";
+    ctx.lineWidth = 2;
+
+    if(n.forma==="circulo"){
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,50,0,Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
+    } else if(n.forma==="rectangulo"){
+      ctx.beginPath();
+      ctx.fillRect(n.x-60,n.y-30,120,60);
+      ctx.strokeRect(n.x-60,n.y-30,120,60);
+    } else if(n.forma==="ovalo"){
+      ctx.beginPath();
+      ctx.ellipse(n.x,n.y,60,40,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.stroke();
     }
 
-    function agregarNodo() {
-      const texto = document.getElementById("textoNodo").value.trim();
-      if (!texto) return;
+    ctx.fillStyle="#fff";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    ctx.font="14px Arial";
+    ctx.fillText(n.texto,n.x,n.y);
 
-      // Posición aleatoria
-      const x = Math.random() * (canvas.width - 100) + 50;
-      const y = Math.random() * (canvas.height - 100) + 50;
+    // Nodo seleccionado
+    if(nodoSeleccionado===i && conectando){
+      ctx.beginPath();
+      ctx.arc(n.x,n.y,55,0,Math.PI*2);
+      ctx.strokeStyle="yellow";
+      ctx.lineWidth=3;
+      ctx.stroke();
+    }
+  });
+}
 
-      nodos.push({texto, x, y});
+// AGREGAR NODO
+function agregarNodo(){
+  const texto = document.getElementById("textoNodo").value.trim();
+  if(!texto) return;
+  const forma = document.getElementById("formaNodo").value;
+  const color = document.getElementById("colorNodo").value;
+  const x = Math.random()*(canvas.width-100)+50;
+  const y = Math.random()*(canvas.height-100)+50;
+  nodos.push({texto,x,y,forma,color});
+  dibujar();
+  document.getElementById("textoNodo").value="";
+}
+
+// DETECTAR NODO
+function detectarNodo(x,y){
+  for(let i=0;i<nodos.length;i++){
+    const n=nodos[i];
+    if(n.forma==="circulo"){
+      if(Math.sqrt((x-n.x)**2+(y-n.y)**2)<50) return i;
+    } else if(n.forma==="rectangulo"){
+      if(x>n.x-60 && x<n.x+60 && y>n.y-30 && y<n.y+30) return i;
+    } else if(n.forma==="ovalo"){
+      if(((x-n.x)**2)/3600 + ((y-n.y)**2)/1600 <1) return i;
+    }
+  }
+  return null;
+}
+
+// MODO CONEXION
+function modoConexion(){
+  conectando = !conectando;
+  borrando=false;
+  nodoSeleccionado=null;
+  alert(conectando ? "Modo conexión activado" : "Modo conexión desactivado");
+}
+
+// MODO BORRAR
+function modoBorrar(){
+  borrando=!borrando;
+  conectando=false;
+  nodoSeleccionado=null;
+  alert(borrando ? "Modo borrar activado" : "Modo borrar desactivado");
+}
+
+// EVENTOS MOUSE
+canvas.addEventListener("mousedown", e=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX-rect.left;
+  const y = e.clientY-rect.top;
+
+  const nodo = detectarNodo(x,y);
+
+  if(borrando){
+    if(nodo!==null){
+      // borrar nodo y sus conexiones
+      conexiones = conexiones.filter(c=>c.desde!==nodo && c.hacia!==nodo);
+      nodos.splice(nodo,1);
       dibujar();
-      document.getElementById("textoNodo").value = "";
     }
-
-    function detectarNodo(x, y) {
-      for (let i = 0; i < nodos.length; i++) {
-        const n = nodos[i];
-        const dx = x - n.x;
-        const dy = y - n.y;
-        if (Math.sqrt(dx*dx + dy*dy) < 50) {
-          return i;
+  } else if(conectando){
+    if(nodo!==null){
+      if(nodoSeleccionado===null) nodoSeleccionado=nodo;
+      else{
+        if(nodoSeleccionado!==nodo){
+          conexiones.push({desde:nodoSeleccionado,hacia:nodo});
         }
+        nodoSeleccionado=null;
       }
-      return null;
+      dibujar();
     }
-
-    function modoConexion() {
-      conectando = !conectando;
-      nodoSeleccionado = null;
-      alert(conectando ? "Modo conexión activado: haz clic en dos nodos para conectarlos 🔗" : "Modo conexión desactivado");
+  } else {
+    if(nodo!==null){
+      arrastrando=nodo;
+      offsetX=x-nodos[nodo].x;
+      offsetY=y-nodos[nodo].y;
+      canvas.style.cursor="grabbing";
     }
+  }
+});
 
-    // Eventos de mouse
-    canvas.addEventListener("mousedown", e => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-
-      const nodo = detectarNodo(x, y);
-
-      if (conectando) {
-        if (nodo !== null) {
-          if (nodoSeleccionado === null) {
-            nodoSeleccionado = nodo;
-          } else {
-            if (nodoSeleccionado !== nodo) {
-              conexiones.push({desde: nodoSeleccionado, hacia: nodo});
-            }
-            nodoSeleccionado = null;
-          }
-          dibujar();
-        }
-      } else {
-        if (nodo !== null) {
-          arrastrando = nodo;
-          offsetX = x - nodos[nodo].x;
-          offsetY = y - nodos[nodo].y;
-          canvas.style.cursor = "grabbing";
-        }
-      }
-    });
-
-    canvas.addEventListener("mousemove", e => {
-      if (arrastrando !== null) {
-        const rect = canvas.getBoundingClientRect();
-        nodos[arrastrando].x = e.clientX - rect.left - offsetX;
-        nodos[arrastrando].y = e.clientY - rect.top - offsetY;
-        dibujar();
-      }
-    });
-
-    canvas.addEventListener("mouseup", () => {
-      arrastrando = null;
-      canvas.style.cursor = "grab";
-    });
-
-    // Inicial
+canvas.addEventListener("mousemove", e=>{
+  if(arrastrando!==null){
+    const rect = canvas.getBoundingClientRect();
+    nodos[arrastrando].x = e.clientX-rect.left-offsetX;
+    nodos[arrastrando].y = e.clientY-rect.top-offsetY;
     dibujar();
-  </script>
+  }
+});
+
+canvas.addEventListener("mouseup", ()=>{
+  arrastrando=null;
+  canvas.style.cursor="grab";
+});
+
+// GUARDAR MAPA
+function guardarMapa(){
+  const data = JSON.stringify({nodos,conexiones});
+  const blob = new Blob([data],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download="mapa.json";
+  a.click();
+}
+
+// CARGAR MAPA
+function cargarMapa(event){
+  const archivo = event.target.files[0];
+  if(!archivo) return;
+  const lector = new FileReader();
+  lector.onload=function(e){
+    const data = JSON.parse(e.target.result);
+    nodos=data.nodos;
+    conexiones=data.conexiones;
+    dibujar();
+  }
+  lector.readAsText(archivo);
+}
+
+// INICIAL
+dibujar();
+</script>
 </body>
 </html>
