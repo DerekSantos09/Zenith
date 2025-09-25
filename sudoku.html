@@ -10,20 +10,21 @@
   --cell:#0b1226; --good:#16a34a; --bad:#ef4444;
 }
 *{box-sizing:border-box}
-body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,var(--bg) 0%, #071833 60%);color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:28px}
+body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,var(--bg) 0%, #071833 60%);color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;}
 .app{width:100%;max-width:1100px}
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
 .topbar h1{margin:0;font-size:20px}
 .controls{display:flex;gap:8px;align-items:center}
-.controls select, .controls button{background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent);border:1px solid rgba(255,255,255,0.04);color:var(--text);padding:8px 10px;border-radius:8px;cursor:pointer}
+.controls select, .controls button{background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent);border:1px solid rgba(255,255,255,0.04);color:var(--text);padding:8px 10px;border-radius:8px;}
 .main{display:flex;flex-direction:column;gap:12px}
 .board-wrap{display:flex;gap:18px;align-items:flex-start}
 .board{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
 .grid{display:grid;grid-template-columns:repeat(9,56px);grid-template-rows:repeat(9,56px);gap:4px}
-.cell{width:56px;height:56px;background:var(--cell);display:flex;align-items:center;justify-content:center;border-radius:8px;position:relative;font-weight:700;font-size:20px;cursor:pointer;user-select:none;color:var(--text)}
+.cell{width:56px;height:56px;background:var(--cell);display:flex;align-items:center;justify-content:center;border-radius:8px;position:relative;font-weight:700;font-size:20px;cursor:pointer;user-select:none;}
 .cell.prefill{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);color:var(--muted);font-weight:800}
 .cell.conflict{outline:2px solid var(--bad)}
 .cell.good{outline:2px solid var(--good)}
+.cell.selected{box-shadow:0 0 0 2px var(--accent) inset;}
 .cell .notes{position:absolute;inset:6px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:1px;font-size:10px;color:var(--muted);}
 .cell .notes span{display:flex;align-items:center;justify-content:center}
 .toolbar{display:flex;flex-direction:column;gap:12px;min-width:260px}
@@ -36,7 +37,6 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linea
 .legend{font-size:12px;color:var(--muted);margin-top:6px}
 .footer{margin-top:12px;text-align:center;color:var(--muted)}
 @media(max-width:900px){.board-wrap{flex-direction:column;align-items:center}.grid{grid-template-columns:repeat(9,42px);grid-template-rows:repeat(9,42px)}.cell{width:42px;height:42px;font-size:16px}}
-
   </style>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -100,6 +100,7 @@ const noteToggleBtn = document.getElementById("noteToggle");
 
 let board = [];         // tablero actual
 let solution = [];      // solución completa
+let prefilled = [];     // celdas originales (no editables)
 let selectedCell = null;
 let notesMode = false;
 let startTime = null;
@@ -114,6 +115,7 @@ function saveGame() {
   const data = {
     board,
     solution,
+    prefilled,
     startTime: startTime ? Date.now() - startTime : null,
     history,
   };
@@ -127,6 +129,7 @@ function loadGame() {
     const data = JSON.parse(raw);
     board = data.board;
     solution = data.solution;
+    prefilled = data.prefilled;
     history = data.history || [];
     startTime = data.startTime ? Date.now() - data.startTime : Date.now();
     return true;
@@ -251,7 +254,9 @@ function renderBoard() {
       let val = board[r][c];
       if (val !== 0) {
         cell.textContent = val;
-        cell.classList.add("prefill");
+        if (prefilled[r] && prefilled[r][c]) {
+          cell.classList.add("prefill");
+        }
       } else {
         const notes = document.createElement("div");
         notes.classList.add("notes");
@@ -290,7 +295,7 @@ function handleInput(num) {
   const r = parseInt(selectedCell.dataset.row);
   const c = parseInt(selectedCell.dataset.col);
 
-  if (board[r][c] !== 0) return; // no editar prellenadas
+  if (prefilled[r] && prefilled[r][c]) return; // no editar prellenadas
 
   if (notesMode) {
     toggleNote(selectedCell, num);
@@ -453,6 +458,7 @@ document.getElementById("erase").addEventListener("click", () => {
   if (!selectedCell) return;
   const r = parseInt(selectedCell.dataset.row);
   const c = parseInt(selectedCell.dataset.col);
+  if (prefilled[r] && prefilled[r][c]) return; // no borrar prellenadas
   if (board[r][c] !== 0) {
     pushHistory();
     board[r][c] = 0;
@@ -486,6 +492,7 @@ function startNewGame() {
   const { puzzle, solution: sol } = generatePuzzle(diff);
   board = puzzle;
   solution = sol;
+  prefilled = puzzle.map(row => row.map(val => val !== 0)); // solo prellenadas
   history = [];
   redoStack = [];
   renderBoard();
