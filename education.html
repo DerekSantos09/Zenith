@@ -11,23 +11,13 @@
       padding: 20px;
       margin: 0;
     }
-
-    h1 {
-      color: #2c3e50;
-      text-align: center;
-    }
-
-    #filter-container {
-      text-align: center;
-      margin: 20px 0;
-    }
-
+    h1 { text-align: center; color: #2c3e50; }
+    #filter-container { text-align: center; margin: 20px 0; }
     #exercises-container {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
       gap: 15px;
     }
-
     .exercise-card {
       background-color: #fff;
       border-radius: 10px;
@@ -37,26 +27,8 @@
       flex-direction: column;
       justify-content: space-between;
     }
-
-    .exercise-card h3 {
-      margin: 0 0 10px 0;
-    }
-
-    .exercise-card a {
-      text-decoration: none;
-      color: #3498db;
-      font-weight: bold;
-      margin-top: 10px;
-      align-self: flex-start;
-    }
-
-    iframe {
-      width: 100%;
-      height: 200px;
-      border-radius: 10px;
-      border: none;
-      margin-top: 10px;
-    }
+    .exercise-card h3 { margin: 0 0 10px 0; }
+    .exercise-card a { text-decoration: none; color: #3498db; font-weight: bold; margin-top: 10px; align-self: flex-start; }
   </style>
 </head>
 <body>
@@ -78,10 +50,8 @@
     const apiURL = "https://www.khanacademy.org/api/v1/exercises";
     const container = document.getElementById("exercises-container");
     const topicSelect = document.getElementById("topic-select");
-
     let allExercises = [];
 
-    // Cargar ejercicios
     fetch(apiURL)
       .then(res => res.json())
       .then(data => {
@@ -93,11 +63,9 @@
         container.innerHTML = "<p>No se pudieron cargar los ejercicios.</p>";
       });
 
-    // Renderizar ejercicios filtrados
     function renderExercises(topic) {
       container.innerHTML = "";
       let filtered = allExercises;
-
       if (topic !== "all") {
         filtered = allExercises.filter(ex => ex.subject_slug?.toLowerCase() === topic);
       }
@@ -106,28 +74,22 @@
         const card = document.createElement("div");
         card.classList.add("exercise-card");
 
-        // Enlace a ejercicio y video si existe
-        const videoURL = ex.video_id 
-          ? `https://www.khanacademy.org/embed_video?v=${ex.video_id}`
-          : null;
+        // Crear enlace al ejercicio
+        const exerciseLink = `https://www.khanacademy.org/exercisedashboard/${ex.slug}`;
+        // Crear enlace al video si existe
+        const videoLink = ex.video_id ? `https://www.khanacademy.org/embed_video?v=${ex.video_id}` : null;
 
         card.innerHTML = `
           <h3>${ex.display_name}</h3>
           <p>${ex.description || "Ejercicio interactivo de Khan Academy."}</p>
-          <a href="https://www.khanacademy.org/exercisedashboard/${ex.slug}" target="_blank">
-            Ir al ejercicio
-          </a>
-          ${videoURL ? `<iframe src="${videoURL}" allowfullscreen></iframe>` : ""}
+          <a href="${exerciseLink}" target="_blank">Ir al ejercicio</a>
+          ${videoLink ? `<a href="${videoLink}" target="_blank">Ver video explicativo</a>` : ""}
         `;
-
         container.appendChild(card);
       });
     }
 
-    // Cambiar filtro
-    topicSelect.addEventListener("change", (e) => {
-      renderExercises(e.target.value);
-    });
+    topicSelect.addEventListener("change", (e) => renderExercises(e.target.value));
   </script>
 </body>
 </html>
