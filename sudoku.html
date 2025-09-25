@@ -19,9 +19,20 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linea
 .main{display:flex;flex-direction:column;gap:12px}
 .board-wrap{display:flex;gap:18px;align-items:flex-start}
 .board{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
-.grid{display:grid;grid-template-columns:repeat(9,56px);grid-template-rows:repeat(9,56px);gap:4px}
-.cell{width:56px;height:56px;background:var(--cell);display:flex;align-items:center;justify-content:center;border-radius:8px;position:relative;font-weight:700;font-size:20px;cursor:pointer;user-select:none;}
-.cell.prefill{background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);color:var(--muted);font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(9,56px);grid-template-rows:repeat(9,56px);gap:0;}
+.cell{
+  width:56px;height:56px;background:var(--cell);display:flex;align-items:center;justify-content:center;border-radius:0;position:relative;
+  font-weight:900;font-size:26px;cursor:pointer;user-select:none;transition:background .13s;
+  color: #fff;
+  text-shadow: 0 2px 8px #000, 0 0 3px #7c3aed;
+  border: 1px solid #16243b;
+}
+.cell.prefill{
+  background:linear-gradient(180deg, rgba(255,255,255,0.04), transparent);
+  color:#e6eef8;
+  font-weight:800;
+  text-shadow: 0 2px 8px #000, 0 0 4px #7c3aed;
+}
 .cell.conflict{outline:2px solid var(--bad)}
 .cell.good{outline:2px solid var(--good)}
 .cell.selected{box-shadow:0 0 0 2px var(--accent) inset;}
@@ -29,14 +40,25 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linea
 .cell .notes span{display:flex;align-items:center;justify-content:center}
 .toolbar{display:flex;flex-direction:column;gap:12px;min-width:260px}
 .keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-.keypad button{padding:10px;border-radius:8px;font-size:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.keypad button{padding:10px;border-radius:8px;font-size:16px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);cursor:pointer;color:var(--text);}
 .panel{display:flex;justify-content:space-between;align-items:center}
 .tools{display:flex;gap:8px}
 .tools button{padding:8px;border-radius:8px}
 .timer{color:var(--muted)}
 .legend{font-size:12px;color:var(--muted);margin-top:6px}
 .footer{margin-top:12px;text-align:center;color:var(--muted)}
-@media(max-width:900px){.board-wrap{flex-direction:column;align-items:center}.grid{grid-template-columns:repeat(9,42px);grid-template-rows:repeat(9,42px)}.cell{width:42px;height:42px;font-size:16px}}
+
+/* Bordes gruesos para bloques 3x3 */
+.cell.block-top    { border-top: 3px solid var(--accent);}
+.cell.block-left   { border-left: 3px solid var(--accent);}
+.cell.block-right  { border-right: 3px solid var(--accent);}
+.cell.block-bottom { border-bottom: 3px solid var(--accent);}
+
+@media(max-width:900px){
+  .board-wrap{flex-direction:column;align-items:center}
+  .grid{grid-template-columns:repeat(9,42px);grid-template-rows:repeat(9,42px)}
+  .cell{width:42px;height:42px;font-size:16px}
+}
   </style>
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -251,6 +273,12 @@ function renderBoard() {
       cell.classList.add("cell");
       cell.dataset.row = r;
       cell.dataset.col = c;
+      // BORDES DE BLOQUES
+      if (r % 3 === 0) cell.classList.add("block-top");
+      if (c % 3 === 0) cell.classList.add("block-left");
+      if (c === 8)      cell.classList.add("block-right");
+      if (r === 8)      cell.classList.add("block-bottom");
+
       let val = board[r][c];
       if (val !== 0) {
         cell.textContent = val;
