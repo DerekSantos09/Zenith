@@ -5,61 +5,175 @@
     <title>Mapa de Universidades del Mundo</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <!-- Google Fonts for a modern look -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        #map { height: 90vh; width: 100%; }
+        body {
+            margin: 0;
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(135deg, #3a6186 0%, #89253e 100%);
+            min-height: 100vh;
+        }
+        header {
+            text-align: center;
+            color: #fff;
+            padding: 2rem 1rem 1rem 1rem;
+        }
+        header h1 {
+            font-family: 'Montserrat', Arial, sans-serif;
+            font-size: 2.5rem;
+            margin: 0;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px #0007;
+        }
+        header p {
+            font-size: 1.2rem;
+            color: #f3e8ff;
+            margin-top: 0.5rem;
+        }
+        #map {
+            width: 90vw;
+            height: 80vh;
+            max-width: 1200px;
+            margin: 2rem auto;
+            border-radius: 18px;
+            box-shadow: 0 6px 30px #0008;
+            border: 3px solid #fff;
+        }
+        @media (max-width: 900px) {
+            #map { width: 98vw; height: 70vh; }
+        }
+        /* Custom marker icon shadow fix */
+        .leaflet-popup-content {
+            font-size: 1.06rem;
+        }
     </style>
 </head>
 <body>
-    <h2>Mapa de Universidades del Mundo (Ejemplo)</h2>
+    <header>
+        <h1>🌍 Mapa Mundial de Universidades</h1>
+        <p>Explora algunas de las universidades más emblemáticas del mundo.<br>Puedes ampliar este mapa con más datos fácilmente.</p>
+    </header>
     <div id="map"></div>
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
-        // Inicializar el mapa centrado en el mundo
-        var map = L.map('map').setView([20, 0], 2);
+        // Inicializa el mapa centrado en el mundo
+        var map = L.map('map', {
+            zoomControl: true,
+            attributionControl: true,
+            scrollWheelZoom: true,
+        }).setView([22, 0], 2.2);
 
-        // Añadir capa base de OpenStreetMap
+        // Añade capa de OpenStreetMap (gratis y sin API)
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 18,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        // Dataset de ejemplo: puedes agregar más universidades aquí
-        var universidades = [
+        // Icono personalizado para universidades
+        var universityIcon = L.icon({
+            iconUrl: 'https://cdn-icons-png.flaticon.com/512/190/190411.png',
+            iconSize:     [36, 36], // tamaño del icono
+            iconAnchor:   [18, 36], // punto del icono que corresponde al marcador
+            popupAnchor:  [0, -30]  // punto desde el cual se abre el popup respecto al icono
+        });
+
+        // Dataset de universidades (puedes agregar MUCHAS más)
+        const universidades = [
             {
                 nombre: "Universidad Nacional Autónoma de México",
                 pais: "México",
+                website: "https://www.unam.mx/",
                 lat: 19.3322,
-                lon: -99.1872
+                lon: -99.1872,
+                descripcion: "La universidad más grande de Latinoamérica."
             },
             {
                 nombre: "Harvard University",
                 pais: "Estados Unidos",
+                website: "https://www.harvard.edu/",
                 lat: 42.3770,
-                lon: -71.1167
+                lon: -71.1167,
+                descripcion: "Fundada en 1636, una de las más prestigiosas del mundo."
             },
             {
                 nombre: "Universidad de Buenos Aires",
                 pais: "Argentina",
+                website: "https://www.uba.ar/",
                 lat: -34.5997,
-                lon: -58.3732
+                lon: -58.3732,
+                descripcion: "Reconocida por su excelencia académica en Sudamérica."
             },
             {
                 nombre: "University of Oxford",
                 pais: "Reino Unido",
+                website: "https://www.ox.ac.uk/",
                 lat: 51.7548,
-                lon: -1.2544
+                lon: -1.2544,
+                descripcion: "La universidad de habla inglesa más antigua del mundo."
+            },
+            {
+                nombre: "University of Tokyo",
+                pais: "Japón",
+                website: "https://www.u-tokyo.ac.jp/",
+                lat: 35.7126,
+                lon: 139.7610,
+                descripcion: "Líder académica en Asia y el mundo."
+            },
+            {
+                nombre: "ETH Zürich",
+                pais: "Suiza",
+                website: "https://ethz.ch/",
+                lat: 47.3763,
+                lon: 8.5476,
+                descripcion: "Referente mundial en ingeniería y ciencias."
+            },
+            {
+                nombre: "Universidade de São Paulo",
+                pais: "Brasil",
+                website: "https://www5.usp.br/",
+                lat: -23.561399,
+                lon: -46.730789,
+                descripcion: "La universidad pública más grande de Brasil."
+            },
+            {
+                nombre: "Tsinghua University",
+                pais: "China",
+                website: "https://www.tsinghua.edu.cn/en/",
+                lat: 40.0025,
+                lon: 116.3269,
+                descripcion: "Una de las mejores en ciencia y tecnología en Asia."
+            },
+            {
+                nombre: "University of Cape Town",
+                pais: "Sudáfrica",
+                website: "https://www.uct.ac.za/",
+                lat: -33.9570,
+                lon: 18.4607,
+                descripcion: "La universidad más antigua de Sudáfrica."
             }
         ];
 
-        // Agregar marcadores al mapa
-        universidades.forEach(function(uni) {
-            L.marker([uni.lat, uni.lon])
+        // Añade los marcadores
+        universidades.forEach(u => {
+            L.marker([u.lat, u.lon], {icon: universityIcon})
                 .addTo(map)
-                .bindPopup('<b>' + uni.nombre + '</b><br>' + uni.pais);
+                .bindPopup(`
+                    <strong>${u.nombre}</strong><br>
+                    <em>${u.pais}</em><br>
+                    ${u.descripcion}<br>
+                    <a href="${u.website}" target="_blank" rel="noopener noreferrer">Sitio web</a>
+                `);
         });
+
+        // Ajuste automático para mostrar todos los marcadores si agregas más universidades
+        if (universidades.length > 1) {
+            var group = new L.featureGroup(universidades.map(u => L.marker([u.lat, u.lon])));
+            map.fitBounds(group.getBounds().pad(0.2));
+        }
     </script>
 </body>
 </html>
