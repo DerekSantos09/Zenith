@@ -3,93 +3,75 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zenith - Matemáticas Interactivas</title>
+  <title>Cursos en mi Web</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background-color: #f4f4f9;
-      padding: 20px;
+      background: #f0f4f8;
       margin: 0;
+      padding: 0;
     }
-    h1 { text-align: center; color: #2c3e50; }
-    #filter-container { text-align: center; margin: 20px 0; }
-    #exercises-container {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 15px;
-    }
-    .exercise-card {
-      background-color: #fff;
-      border-radius: 10px;
+    header {
+      background: #1a73e8;
+      color: white;
       padding: 15px;
-      box-shadow: 0px 3px 8px rgba(0,0,0,0.1);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      text-align: center;
     }
-    .exercise-card h3 { margin: 0 0 10px 0; }
-    .exercise-card a { text-decoration: none; color: #3498db; font-weight: bold; margin-top: 10px; align-self: flex-start; }
+    nav {
+      background: #fff;
+      padding: 10px;
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      border-bottom: 2px solid #ddd;
+    }
+    nav button {
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    nav button:hover {
+      background: #155ab6;
+    }
+    .content {
+      padding: 20px;
+      text-align: center;
+    }
+    iframe {
+      width: 80%;
+      height: 450px;
+      border: none;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
-  <h1>Zenith - Matemáticas Interactivas</h1>
+  <header>
+    <h1>📚 Cursos Interactivos</h1>
+    <p>Selecciona un curso para empezar</p>
+  </header>
 
-  <div id="filter-container">
-    <label for="topic-select">Filtrar por tema: </label>
-    <select id="topic-select">
-      <option value="all">Todos</option>
-      <option value="algebra">Álgebra</option>
-      <option value="geometry">Geometría</option>
-      <option value="calculus">Cálculo</option>
-    </select>
+  <nav>
+    <button onclick="loadCourse('https://www.youtube.com/embed/HEfHFsfGXjs')">Matemáticas</button>
+    <button onclick="loadCourse('https://www.youtube.com/embed/VcT6jI5jLJM')">Ciencias</button>
+    <button onclick="loadCourse('https://www.youtube.com/embed/GFO_txvwK_c')">Programación</button>
+  </nav>
+
+  <div class="content">
+    <h2 id="course-title">Selecciona un curso</h2>
+    <iframe id="course-frame" src=""></iframe>
   </div>
 
-  <div id="exercises-container"></div>
-
   <script>
-    const apiURL = "https://www.khanacademy.org/api/v1/exercises";
-    const container = document.getElementById("exercises-container");
-    const topicSelect = document.getElementById("topic-select");
-    let allExercises = [];
-
-    fetch(apiURL)
-      .then(res => res.json())
-      .then(data => {
-        allExercises = data.filter(ex => ex.domain_slug === "math");
-        renderExercises("all");
-      })
-      .catch(err => {
-        console.error(err);
-        container.innerHTML = "<p>No se pudieron cargar los ejercicios.</p>";
-      });
-
-    function renderExercises(topic) {
-      container.innerHTML = "";
-      let filtered = allExercises;
-      if (topic !== "all") {
-        filtered = allExercises.filter(ex => ex.subject_slug?.toLowerCase() === topic);
-      }
-
-      filtered.slice(0, 20).forEach(ex => {
-        const card = document.createElement("div");
-        card.classList.add("exercise-card");
-
-        // Crear enlace al ejercicio
-        const exerciseLink = `https://www.khanacademy.org/exercisedashboard/${ex.slug}`;
-        // Crear enlace al video si existe
-        const videoLink = ex.video_id ? `https://www.khanacademy.org/embed_video?v=${ex.video_id}` : null;
-
-        card.innerHTML = `
-          <h3>${ex.display_name}</h3>
-          <p>${ex.description || "Ejercicio interactivo de Khan Academy."}</p>
-          <a href="${exerciseLink}" target="_blank">Ir al ejercicio</a>
-          ${videoLink ? `<a href="${videoLink}" target="_blank">Ver video explicativo</a>` : ""}
-        `;
-        container.appendChild(card);
-      });
+    function loadCourse(url) {
+      document.getElementById("course-frame").src = url;
+      document.getElementById("course-title").innerText = "Curso en progreso...";
     }
-
-    topicSelect.addEventListener("change", (e) => renderExercises(e.target.value));
   </script>
 </body>
 </html>
