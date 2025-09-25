@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bloc de Notas - Zenith</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #0d1b2a, #1b263b, #415a77);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+
+    header {
+      background: rgba(0,0,0,0.6);
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    textarea {
+      flex: 1;
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      border: none;
+      outline: none;
+      resize: none;
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-family: monospace;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: rgba(0,0,0,0.6);
+    }
+
+    button, label {
+      background: #38b000;
+      color: #fff;
+      padding: 0.6rem 1.2rem;
+      border: none;
+      border-radius: 0.5rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover, label:hover {
+      background: #2d8700;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .status {
+      font-size: 0.9rem;
+      color: #9ae19d;
+      text-align: center;
+      margin-top: -0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <header>📝 Bloc de Notas - Zenith</header>
+
+  <textarea id="notepad" placeholder="Escribe tus notas aquí..."></textarea>
+  <div class="status" id="status">Guardado automáticamente ✅</div>
+
+  <div class="controls">
+    <button onclick="borrarNota()">🗑️ Borrar</button>
+    <button onclick="descargarNota()">⬇️ Descargar</button>
+    <label for="fileInput">📂 Subir .txt</label>
+    <input type="file" id="fileInput" accept=".txt">
+  </div>
+
+  <script>
+    const textarea = document.getElementById("notepad");
+    const fileInput = document.getElementById("fileInput");
+    const status = document.getElementById("status");
+
+    // Cargar nota guardada al abrir la página
+    window.onload = () => {
+      const notaGuardada = localStorage.getItem("notaZenith");
+      if (notaGuardada) {
+        textarea.value = notaGuardada;
+      }
+    };
+
+    // Guardado automático al escribir
+    textarea.addEventListener("input", () => {
+      localStorage.setItem("notaZenith", textarea.value);
+      mostrarEstado();
+    });
+
+    function mostrarEstado() {
+      status.textContent = "Guardado automáticamente ✅";
+      setTimeout(() => {
+        status.textContent = "";
+      }, 1500);
+    }
+
+    // Borrar nota de la pantalla y del almacenamiento
+    function borrarNota() {
+      textarea.value = "";
+      localStorage.removeItem("notaZenith");
+      alert("🗑️ Nota borrada!");
+    }
+
+    // Descargar nota como archivo .txt
+    function descargarNota() {
+      const texto = textarea.value;
+      const blob = new Blob([texto], { type: "text/plain" });
+      const enlace = document.createElement("a");
+      enlace.href = URL.createObjectURL(blob);
+      enlace.download = "mis_notas.txt";
+      enlace.click();
+    }
+
+    // Subir archivo .txt y cargarlo en el bloc
+    fileInput.addEventListener("change", (event) => {
+      const archivo = event.target.files[0];
+      if (archivo) {
+        const lector = new FileReader();
+        lector.onload = (e) => {
+          textarea.value = e.target.result;
+          localStorage.setItem("notaZenith", textarea.value); // también se guarda
+          mostrarEstado();
+        };
+        lector.readAsText(archivo);
+      }
+    });
+  </script>
+</body>
+</html>
