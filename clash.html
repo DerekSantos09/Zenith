@@ -2,180 +2,595 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Mini Clash Fusion Ultra + Sonido</title>
+<title>Clash Royale Fusion - Ultra Épico</title>
 <style>
-body { text-align:center; font-family:sans-serif; background:#a2d5c6; }
-canvas { display:block; margin:0 auto; border:2px solid #333; background:#7ec850; }
-#ui { margin:10px; font-size:18px; }
-button { margin:5px; padding:10px; font-size:16px; cursor:pointer; border-radius:5px; background:#fff; border:1px solid #333; }
+body {
+  margin: 0;
+  background: linear-gradient(135deg, #3a7bd5 0%, #00d2ff 100%);
+  font-family: 'Segoe UI', sans-serif;
+  color: #fff;
+  overflow-x: hidden;
+}
+#ui {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 18px 0 8px 0;
+  gap: 20px;
+  user-select: none;
+}
+.elixir-bar-bg {
+  width: 220px;
+  height: 32px;
+  background: #223057;
+  border-radius: 16px;
+  border: 2.5px solid #6ef4ff;
+  box-shadow: 0 2px 8px #0007;
+  position: relative;
+  overflow: hidden;
+}
+.elixir-bar-inner {
+  position: absolute;
+  left: 0; top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #6ef4ff 0%, #a66bff 100%);
+  border-radius: 16px 0 0 16px;
+  transition: width 0.4s cubic-bezier(.5,1.5,.5,1);
+  box-shadow: 0 0 14px #fff7;
+}
+.elixir-label {
+  position: absolute;
+  width: 100%; text-align: center; top: 0;
+  font-size: 18px; font-weight: bold;
+  color: #213;
+  text-shadow: 1px 1px 3px #fff8, 0 0 12px #fff6;
+  line-height: 32px;
+}
+.unit-btn {
+  background: linear-gradient(90deg, #ffd700 0%, #ff5e00 100%);
+  color: #222;
+  border: none;
+  border-radius: 12px;
+  font-size: 19px;
+  padding: 11px 28px;
+  margin: 0 6px;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 3px 10px #0004, 0 0 9px #ffdf;
+  transition: transform 0.13s cubic-bezier(.7,1.7,.5,1), box-shadow .2s;
+  letter-spacing: 0.5px;
+}
+.unit-btn:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 5px #0008;
+}
+#gameCanvas {
+  display: block;
+  margin: 0 auto;
+  border-radius: 25px;
+  border: 3.5px solid #224e7a;
+  background: #a1ffce;
+  box-shadow: 0 12px 40px #0f2940aa, 0 0 14px #ffffff40;
+}
+.status-panel {
+  margin: 12px auto 0 auto;
+  width: 410px;
+  text-align: center;
+  font-size: 20px;
+  background: #213d5bdd;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px #0007;
+  padding: 8px 0;
+  letter-spacing: 1px;
+  position: relative;
+  z-index: 2;
+}
+#overlay {
+  display: none;
+  position: fixed;
+  top:0; left:0; width:100vw; height:100vh;
+  background: rgba(33,48,80,0.92);
+  justify-content: center; align-items: center;
+  z-index: 99;
+  flex-direction: column;
+}
+#overlay h2 {
+  font-size: 55px;
+  margin: 0 0 18px 0;
+  background: linear-gradient(90deg, #ffd700, #ff5e00, #ffd700);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 25px #fffb;
+}
+#overlay button {
+  font-size: 28px;
+  background: linear-gradient(90deg, #50f5a5, #3a7bd5 80%);
+  border: none; border-radius: 10px;
+  color: #fff;
+  padding: 16px 44px;
+  margin-top: 24px;
+  font-weight: bold;
+  box-shadow: 0 2px 18px #0006;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.13s;
+}
+#overlay button:hover { background: linear-gradient(90deg, #3a7bd5, #50f5a5 80%); transform: scale(1.07); }
+@media (max-width: 900px) {
+  #gameCanvas { width: 98vw !important; height: 48vw !important; max-width: 700px; max-height: 350px;}
+  .status-panel { width: 95vw; font-size: 17px;}
+}
 </style>
 </head>
 <body>
-<h1>Mini Clash Fusion Ultra Animado + Sonido</h1>
-<div id="ui">
-  <span id="elixir">Elixir: 10</span>
-  <button onclick="lanzarUnidad('tanque')">Tanque (4)</button>
-  <button onclick="lanzarUnidad('rapido')">Rápido (2)</button>
-  <button onclick="lanzarUnidad('magico')">Mágico (3)</button>
+<h1 style="text-align:center;margin-top:20px;text-shadow:0 2px 14px #fff8,0 2px 30px #3a7bd5;">Clash Royale x Clash of Clans: Mini Fusión Épica</h1>
+<div class="status-panel" id="statusPanel">
+  <span id="vidaIzq">Vida Base Azul: 500</span>
+  <span style="margin:0 18px;">|</span>
+  <span id="vidaDer">Vida Base Roja: 500</span>
 </div>
-<canvas id="gameCanvas" width="800" height="400"></canvas>
+<div id="ui">
+  <div class="elixir-bar-bg">
+    <div class="elixir-bar-inner" id="elixirBar"></div>
+    <div class="elixir-label" id="elixirLabel">10 / 10</div>
+  </div>
+  <button class="unit-btn" onclick="lanzarUnidad('tanque')">Tanque<br><small>4💧</small></button>
+  <button class="unit-btn" onclick="lanzarUnidad('rapido')">Rápido<br><small>2💧</small></button>
+  <button class="unit-btn" onclick="lanzarUnidad('magico')">Mágico<br><small>3💧</small></button>
+</div>
+<canvas id="gameCanvas" width="900" height="420"></canvas>
+
+<div id="overlay">
+  <h2 id="overlayTitle"></h2>
+  <div id="overlayMsg"></div>
+  <button onclick="restartGame()">¡Jugar de Nuevo!</button>
+</div>
 
 <script>
-// Canvas
+// --- Constantes de Arte y Colores ---
+const COLORS = {
+  fondo: ['#b0eaff','#b4ffb9'], // gradiente
+  carriles: ['#a8e063','#56ab2f'],
+  base_azul: '#3a7bd5',
+  base_rojo: '#ff5e62',
+  torre: ['#f7ff00','#db36a4'],
+  barraVida: ['#00e1ff','#ff5e00'],
+  vidaFondo: '#213d5b',
+  tropa_azul: ['#7ed7ff','#3777ff'],
+  tropa_roja: ['#ffb67e','#ff3a3a'],
+  magico: ['#b164ff','#edb8ff'],
+  rapido: ['#ffd700','#fffab7'],
+  tanque: ['#b8b8b8','#575757'],
+  proyectil: ['#fff700','#ff3a3a','#00e1ff'],
+  sombra: '#0005'
+};
+const NOMBRES = {
+  tanque: 'Tanque',
+  rapido: 'Rápido',
+  magico: 'Mágico'
+};
+
+// --- Canvas y contexto ---
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// Carriles
-const carriles = [50, 150, 250];
+// --- Carriles ---
+const carriles = [70, 170, 270];
+const carrilH = 64;
 
-// Bases
-const baseIzq = {x:50,y:100,w:50,h:200,vida:500};
-const baseDer = {x:700,y:100,w:50,h:200,vida:500};
+// --- Bases y Torres ---
+const baseIzq = {x:60,y:90,w:52,h:180,vida:500,vidaMax:500};
+const baseDer = {x:canvas.width-112,y:90,w:52,h:180,vida:500,vidaMax:500};
+const torresIzq = [{x:180,y:115,w:38,h:38,vida:130,ataque:16,rango:160,cd:0}];
+const torresDer = [{x:canvas.width-218,y:115,w:38,h:38,vida:130,ataque:16,rango:160,cd:0}];
 
-// Torres
-const torresIzq = [{x:180,y:120,w:30,h:30,vida:100,ataque:15,rango:100}];
-const torresDer = [{x:590,y:120,w:30,h:30,vida:100,ataque:15,rango:100}];
-
-// Proyectiles y efectos
+// --- Proyectiles y efectos ---
 let proyectiles = [];
 let efectos = [];
 
-// Sistema de elixir
-let elixir = 10;
-setInterval(()=>{if(elixir<10) elixir++; document.getElementById("elixir").innerText=`Elixir: ${elixir}`;},1000);
+// --- Sistema de elixir ---
+let elixir = 10, elixirMax = 10;
+let elixirBar = document.getElementById('elixirBar');
+let elixirLabel = document.getElementById('elixirLabel');
+setInterval(()=>{
+  if(elixir < elixirMax) elixir++;
+  updateElixirUI();
+}, 1250);
+function updateElixirUI() {
+  let percent = (elixir/elixirMax);
+  elixirBar.style.width = (percent*100)+"%";
+  elixirLabel.textContent = elixir + " / " + elixirMax;
+  elixirBar.style.background = percent === 1
+    ? 'linear-gradient(90deg,#6ef4ff 0%,#ffd700 100%)'
+    : 'linear-gradient(90deg,#6ef4ff 0%,#a66bff 100%)';
+}
 
-// Sprites
-const sprites = {
-  tanque: new Image(), rapido: new Image(), magico: new Image(),
-  torre: new Image(), fondo: new Image()
-};
-sprites.tanque.src = "https://i.imgur.com/1J0JZK8.png";
-sprites.rapido.src = "https://i.imgur.com/GxT7WkI.png";
-sprites.magico.src = "https://i.imgur.com/IGkmxxH.png";
-sprites.torre.src = "https://i.imgur.com/3H0s6ZL.png";
-sprites.fondo.src = "https://i.imgur.com/OdL0XPt.png";
+// --- Sprites (simples, cartoon, SVGs incrustados) ---
+function drawBase(x, y, w, h, color, side) {
+  ctx.save();
+  ctx.shadowColor = COLORS.sombra;
+  ctx.shadowBlur = 16;
+  ctx.fillStyle = color;
+  ctx.fillRect(x, y, w, h);
+  ctx.shadowBlur = 0;
+  // Puerta y detalles
+  ctx.fillStyle = "#fff9";
+  ctx.fillRect(x+w/2-8, y+h-36, 16, 32);
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(x+w/2, y+h-16, 13, Math.PI, 0);
+  ctx.stroke();
+  ctx.restore();
+}
 
-// Sonidos
+// --- Sonidos (más cartoon) ---
 const sonidos = {
-  lanzar: new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3"),
-  impacto: new Audio("https://www.soundjay.com/mechanical/sounds/mechanical-clack-02.mp3"),
-  explosion: new Audio("https://www.soundjay.com/explosion/sounds/explosion-01.mp3")
+  lanzar: new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa6f7e.mp3"),
+  impacto: new Audio("https://cdn.pixabay.com/audio/2022/02/23/audio_115bfa6b7d.mp3"),
+  explosion: new Audio("https://cdn.pixabay.com/audio/2022/10/16/audio_125bfa6f7e.mp3"),
+  victoria: new Audio("https://cdn.pixabay.com/audio/2022/10/16/audio_125bfa6f7e.mp3"),
+  derrota: new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa6f7e.mp3")
 };
 
-// Clase Unidad
+// --- Clase Unidad ---
 class Unidad{
-  constructor(x,y,tipo,direccion){
-    this.x=x; this.y=y; this.tipo=tipo; this.direccion=direccion;
-    if(tipo==='tanque'){this.vida=150; this.vel=0.5; this.atq=20; this.tam=40; this.sprite=sprites.tanque;}
-    if(tipo==='rapido'){this.vida=70; this.vel=2; this.atq=10; this.tam=30; this.sprite=sprites.rapido;}
-    if(tipo==='magico'){this.vida=80; this.vel=1; this.atq=25; this.tam=30; this.sprite=sprites.magico;}
-    this.frame=0; this.frameMax=4;
+  constructor(x,y,tipo,direccion,side){
+    this.x=x; this.y=y; this.tipo=tipo; this.direccion=direccion; this.side=side;
+    if(tipo==='tanque'){this.vida=160; this.vidaMax=160; this.vel=0.6; this.atq=24; this.tam=44;}
+    if(tipo==='rapido'){this.vida=80; this.vidaMax=80; this.vel=2.2; this.atq=12; this.tam=32;}
+    if(tipo==='magico'){this.vida=85; this.vidaMax=85; this.vel=1.1; this.atq=29; this.tam=34;}
+    this.frame=0; this.frameMax=5;
+    this.cd=0;
+    this.dañoAnim=0;
   }
-  mover(){this.x+=this.vel*this.direccion;}
+  mover(){ this.x += this.vel*this.direccion; }
   dibujar(){
-    ctx.drawImage(this.sprite,this.frame*this.tam,0,this.tam,this.tam,this.x,this.y,this.tam,this.tam);
+    // Sombra
+    ctx.save();
+    ctx.globalAlpha = 0.34;
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.ellipse(this.x+this.tam/2, this.y+this.tam-3, this.tam/2.2, 7, 0, 0, 2*Math.PI);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    // Cuerpo principal (cartoon)
+    if(this.tipo==="tanque"){
+      let grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad.addColorStop(0,COLORS.tanque[0]); grad.addColorStop(1,COLORS.tanque[1]);
+      ctx.fillStyle = grad;
+      ctx.fillRect(this.x, this.y, this.tam, this.tam-8);
+      ctx.fillStyle = "#666";
+      ctx.fillRect(this.x+7, this.y+this.tam-18, this.tam-14, 12);
+      ctx.fillStyle = "#333";
+      ctx.fillRect(this.x+this.tam/2-6, this.y+2, 12, this.tam-18);
+    }
+    if(this.tipo==="rapido"){
+      let grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad.addColorStop(0,COLORS.rapido[0]); grad.addColorStop(1,COLORS.rapido[1]);
+      ctx.beginPath();
+      ctx.ellipse(this.x+this.tam/2,this.y+this.tam/2,this.tam/2.1,this.tam/2.7,0,0,2*Math.PI); ctx.fillStyle=grad;
+      ctx.fill();
+      ctx.strokeStyle="#ffe";
+      ctx.lineWidth=2; ctx.stroke();
+      ctx.fillStyle = "#fff8";
+      ctx.beginPath();
+      ctx.ellipse(this.x+this.tam/2+4, this.y+this.tam/2-7, 7, 4, 0, 0, 2*Math.PI); ctx.fill();
+    }
+    if(this.tipo==="magico"){
+      let grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad.addColorStop(0,COLORS.magico[0]); grad.addColorStop(1,COLORS.magico[1]);
+      ctx.beginPath();
+      ctx.arc(this.x+this.tam/2,this.y+this.tam/2,this.tam/2,0,2*Math.PI); ctx.fillStyle=grad;
+      ctx.shadowColor="#fff6"; ctx.shadowBlur=18; ctx.fill();
+      ctx.shadowBlur=0;
+      ctx.fillStyle="#fff";
+      ctx.font="bold 17px Segoe UI";
+      ctx.globalAlpha=0.33; ctx.fillText("★",this.x+this.tam/2-8,this.y+this.tam/2+6);
+      ctx.globalAlpha=1;
+    }
+    // Animación de daño (blink)
+    if(this.dañoAnim>0){
+      ctx.globalAlpha = Math.max(0, this.dañoAnim/10);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(this.x-2,this.y-2,this.tam+4,this.tam+4);
+      ctx.globalAlpha = 1;
+      this.dañoAnim--;
+    }
+    // Barra de vida
+    ctx.save();
+    ctx.fillStyle = COLORS.vidaFondo;
+    ctx.fillRect(this.x-1, this.y-13, this.tam+2, 8);
+    let gradBar = ctx.createLinearGradient(this.x, 0, this.x+this.tam, 0);
+    gradBar.addColorStop(0, COLORS.barraVida[0]);
+    gradBar.addColorStop(1, COLORS.barraVida[1]);
+    ctx.fillStyle = gradBar;
+    ctx.fillRect(this.x, this.y-12, this.tam*(this.vida/this.vidaMax), 6);
+    ctx.restore();
+
+    // Nombre
+    ctx.save();
+    ctx.font = "bold 13px Segoe UI";
+    ctx.fillStyle = this.side==="izq"? "#2af" : "#f23";
+    ctx.shadowColor="#fff6"; ctx.shadowBlur=3;
+    ctx.textAlign="center";
+    ctx.fillText(NOMBRES[this.tipo], this.x+this.tam/2, this.y-18);
+    ctx.restore();
+
+    ctx.restore();
     this.frame=(this.frame+0.2)%this.frameMax;
-    ctx.fillStyle='red';
-    ctx.fillRect(this.x,this.y-5,this.tam*Math.max(this.vida/150,0),4);
   }
 }
 
-// Clase Proyectil
+// --- Clase Proyectil ---
 class Proyectil{
   constructor(x,y,target,daño,color){
-    this.x=x; this.y=y; this.target=target; this.daño=daño; this.color=color; this.vel=5;
+    this.x=x; this.y=y; this.target=target; this.daño=daño; this.color=color; this.vel=6;
+    this.tam = 8 + Math.random()*3;
   }
   mover(){
-    const dx=this.target.x-this.x,dy=this.target.y-this.y,dist=Math.hypot(dx,dy);
+    const dx=this.target.x+this.target.tam/2-this.x,dy=this.target.y+this.target.tam/2-this.y,dist=Math.hypot(dx,dy);
     if(dist<this.vel){
       this.target.vida-=this.daño;
-      efectos.push(new Efecto(this.target.x,this.target.y,15,30,true));
-      sonidos.impacto.play();
+      this.target.dañoAnim = 7;
+      efectos.push(new Efecto(this.target.x+this.target.tam/2,this.target.y+this.target.tam/2,17,15,true));
+      sonidos.impacto.currentTime=0; sonidos.impacto.play();
       return false;
     }
     this.x+=dx/dist*this.vel; this.y+=dy/dist*this.vel; return true;
   }
   dibujar(){
+    ctx.save();
+    ctx.shadowColor = "#fff";
+    ctx.shadowBlur = 8;
     ctx.fillStyle=this.color;
-    ctx.beginPath(); ctx.arc(this.x,this.y,5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.tam,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
   }
 }
 
-// Clase efecto impacto y muerte
+// --- Efecto explosiones y partículas ---
 class Efecto{
   constructor(x,y,r,t,explosion=false){
     this.x=x; this.y=y; this.r=r; this.t=t; this.explosion=explosion;
-    if(explosion) sonidos.explosion.play();
+    if(explosion){ sonidos.explosion.currentTime=0; sonidos.explosion.play(); }
   }
   dibujar(){
-    ctx.strokeStyle=this.explosion?'orange':'yellow';
+    ctx.save();
+    ctx.strokeStyle=this.explosion?'#ffbc00':'#fff';
+    ctx.lineWidth = this.explosion ? 5 : 2;
+    ctx.globalAlpha = Math.max(0, this.t/30);
     ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.stroke();
+    ctx.restore();
     this.r+=2; this.t--;
   }
 }
 
-// Tropas
+// --- Tropas ---
 let tropas=[];
 
-// Lanzar unidad
+// --- Lanzar unidad ---
 function lanzarUnidad(tipo){
   const costo = tipo==='tanque'?4:tipo==='rapido'?2:3;
-  if(elixir<costo) return alert("No tienes suficiente elixir");
-  elixir-=costo;
-  sonidos.lanzar.play();
-  const carrilY=carriles[Math.floor(Math.random()*carriles.length)];
-  const x=tipo==='magico'?650:100;
-  const dir=tipo==='magico'?-1:1;
-  tropas.push(new Unidad(x,carrilY,tipo,dir));
+  if(elixir < costo) {
+    // animar barra de elixir
+    elixirBar.style.background = 'linear-gradient(90deg,#ff5e00 0%,#ffb700 100%)';
+    setTimeout(updateElixirUI, 350);
+    return;
+  }
+  elixir -= costo;
+  updateElixirUI();
+  sonidos.lanzar.currentTime=0; sonidos.lanzar.play();
+
+  // lado jugador: izq, lado IA: der
+  const carrilY = carriles[Math.floor(Math.random()*carriles.length)];
+  tropas.push(new Unidad(130, carrilY, tipo, 1, "izq"));
 }
 
-// Función batalla
+// --- Lanzar unidad IA ---
+function lanzarUnidadIA(){
+  if(baseDer.vida<=0) return;
+  if(elixir < 2) return;
+  // decide qué lanzar
+  let choice = Math.random();
+  let tipo = (choice<0.35) ? 'tanque' : (choice<0.7?'rapido':'magico');
+  const costo = tipo==='tanque'?4:tipo==='rapido'?2:3;
+  if(elixir < costo) return;
+  elixir -= costo;
+  updateElixirUI();
+  const carrilY = carriles[Math.floor(Math.random()*carriles.length)];
+  tropas.push(new Unidad(canvas.width-130-38, carrilY, tipo, -1, "der"));
+}
+
+// --- Función batalla principal ---
 function battle(){
   tropas.forEach((u,i)=>{
+    if(u.cd>0) u.cd--;
     u.mover();
-    const baseTarget=u.direccion===1?baseDer:baseIzq;
+    // Ataca base
+    const baseTarget = u.direccion===1?baseDer:baseIzq;
     if(u.x+u.tam>=baseTarget.x && u.x<=baseTarget.x+baseTarget.w && u.y+u.tam>=baseTarget.y && u.y<=baseTarget.y+baseTarget.h){
       baseTarget.vida-=u.atq;
-      efectos.push(new Efecto(baseTarget.x+baseTarget.w/2,baseTarget.y+baseTarget.h/2,15,30,true));
+      efectos.push(new Efecto(baseTarget.x+baseTarget.w/2,baseTarget.y+baseTarget.h/2,24,25,true));
       u.vida=0;
+      baseTarget.vida = Math.max(0, baseTarget.vida);
+      updateStatusPanel();
     }
-    tropas.forEach((v,j)=>{if(i===j) return;
-      if(u.direccion!==v.direccion && Math.abs(u.x-v.x)<30 && Math.abs(u.y-v.y)<30){
-        if(u.tipo==='magico') proyectiles.push(new Proyectil(u.x+u.tam/2,u.y+u.tam/2,v,u.atq,'cyan'));
-        else{u.vida-=v.atq; v.vida-=u.atq; efectos.push(new Efecto(u.x,u.y,8,15,true));}
+    // Ataca tropas del lado opuesto
+    tropas.forEach((v,j)=>{
+      if(i===j) return;
+      if(u.direccion!==v.direccion && Math.abs(u.x-v.x)<32 && Math.abs(u.y-v.y)<carrilH/2){
+        if(u.tipo==='magico' && u.cd<=0){
+          proyectiles.push(new Proyectil(u.x+u.tam/2,u.y+u.tam/2,v,u.atq,'#30d0ff'));
+          u.cd=25+Math.floor(Math.random()*6);
+        }
+        else if(u.cd<=0){
+          v.vida-=u.atq; u.vida-=v.atq;
+          v.dañoAnim = 5; u.dañoAnim = 5;
+          efectos.push(new Efecto(u.x+u.tam/2,u.y+u.tam/2,14,12,true));
+          u.cd=18+Math.floor(Math.random()*4);
+          v.cd=18+Math.floor(Math.random()*4);
+        }
       }
     });
   });
 
   // Torres
-  torresIzq.forEach(t=>{tropas.forEach(u=>{if(u.direccion===1 && Math.hypot(u.x-t.x,u.y-t.y)<t.rango){
-    if(u.tipo==='magico') proyectiles.push(new Proyectil(t.x+t.w/2,t.y+t.h/2,u,t.ataque,'orange')); else {u.vida-=t.ataque; efectos.push(new Efecto(u.x,u.y,8,15,true));}
-  }});});
-  torresDer.forEach(t=>{tropas.forEach(u=>{if(u.direccion===-1 && Math.hypot(u.x-t.x,u.y-t.y)<t.rango){
-    if(u.tipo==='magico') proyectiles.push(new Proyectil(t.x+t.w/2,t.y+t.h/2,u,t.ataque,'orange')); else {u.vida-=t.ataque; efectos.push(new Efecto(u.x,u.y,8,15,true));}
-  }});});
+  [...torresIzq, ...torresDer].forEach((t,idx)=>{
+    if(t.cd>0) t.cd--;
+    tropas.forEach(u=>{
+      if( (idx===0 && u.direccion===-1) || (idx===1 && u.direccion===1) ){
+        if(Math.hypot(u.x+u.tam/2-t.x-t.w/2, u.y+u.tam/2-t.y-t.h/2)<t.rango && t.cd<=0){
+          if(u.tipo==='magico'){
+            proyectiles.push(new Proyectil(t.x+t.w/2,t.y+t.h/2,u,t.ataque,'#ffbc00'));
+          } else {
+            u.vida-=t.ataque; u.dañoAnim = 4;
+            efectos.push(new Efecto(u.x+u.tam/2,u.y+u.tam/2,12,8,true));
+          }
+          t.cd=28+Math.floor(Math.random()*6);
+        }
+      }
+    });
+  });
 
   proyectiles = proyectiles.filter(p=>p.mover());
   tropas = tropas.filter(u=>u.vida>0);
   efectos = efectos.filter(e=>{e.dibujar(); return e.t>0;});
 }
 
-// Dibujar todo
+// --- Dibujar todo ---
 function draw(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  ctx.drawImage(sprites.fondo,0,0,canvas.width,canvas.height);
-  ctx.strokeStyle='black'; carriles.forEach(y=>{ctx.beginPath(); ctx.moveTo(0,y+10); ctx.lineTo(canvas.width,y+10); ctx.stroke();});
-  ctx.fillStyle='brown'; ctx.fillRect(baseIzq.x,baseIzq.y,baseIzq.w,baseIzq.h); ctx.fillRect(baseDer.x,baseDer.y,baseDer.w,baseDer.h);
-  ctx.fillStyle='white'; ctx.fillText(`Vida: ${baseIzq.vida}`,baseIzq.x,baseIzq.y-10); ctx.fillText(`Vida: ${baseDer.vida}`,baseDer.x,baseDer.y-10);
-  torresIzq.forEach(t=>ctx.drawImage(sprites.torre,t.x,t.y,t.w,t.h));
-  torresDer.forEach(t=>ctx.drawImage(sprites.torre,t.x,t.y,t.w,t.h));
+  // Fondo colorido
+  let bgGrad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  bgGrad.addColorStop(0,COLORS.fondo[0]);
+  bgGrad.addColorStop(1,COLORS.fondo[1]);
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Carriles
+  for(let i=0; i<carriles.length; i++){
+    let grad = ctx.createLinearGradient(0,0,canvas.width,0);
+    grad.addColorStop(0,COLORS.carriles[0]);
+    grad.addColorStop(1,COLORS.carriles[1]);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, carriles[i], canvas.width, carrilH-14);
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, carriles[i]+carrilH-14, canvas.width, 6);
+    ctx.restore();
+  }
+
+  // Bases
+  drawBase(baseIzq.x, baseIzq.y, baseIzq.w, baseIzq.h, COLORS.base_azul, "izq");
+  drawBase(baseDer.x, baseDer.y, baseDer.w, baseDer.h, COLORS.base_rojo, "der");
+
+  // Vida bases
+  drawBarraVida(baseIzq.x, baseIzq.y-19, baseIzq.w, 10, baseIzq.vida, baseIzq.vidaMax, "#3a7bd5");
+  drawBarraVida(baseDer.x, baseDer.y-19, baseDer.w, 10, baseDer.vida, baseDer.vidaMax, "#ff5e62");
+
+  // Torres
+  torresIzq.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#69f"));
+  torresDer.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#f23"));
+
+  // Tropas
   tropas.forEach(u=>u.dibujar());
+  // Proyectiles
   proyectiles.forEach(p=>p.dibujar());
+  // Efectos
+  efectos.forEach(e=>e.dibujar());
 }
 
-// Loop principal
-function gameLoop(){battle(); draw(); requestAnimationFrame(gameLoop);}
+// --- Barra de vida ---
+function drawBarraVida(x, y, w, h, vida, vidaMax, color){
+  ctx.save();
+  ctx.fillStyle = "#222c";
+  ctx.fillRect(x, y, w, h);
+  let grad = ctx.createLinearGradient(x, y, x+w, y);
+  grad.addColorStop(0, color);
+  grad.addColorStop(1, "#fff");
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, y, w*(vida/vidaMax), h);
+  ctx.strokeStyle="#fff8";
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+}
+
+// --- Torre cartoon ---
+function drawTorre(x, y, w, h, color){
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x+w/2, y);
+  ctx.lineTo(x+w, y+h/3);
+  ctx.lineTo(x+w, y+h);
+  ctx.lineTo(x, y+h);
+  ctx.lineTo(x, y+h/3);
+  ctx.closePath();
+  ctx.shadowColor = "#fff8";
+  ctx.shadowBlur=10;
+  ctx.fill();
+  ctx.shadowBlur=0;
+  // Ventana
+  ctx.fillStyle="#fff";
+  ctx.fillRect(x+w/2-7, y+h-18, 14, 14);
+  ctx.restore();
+}
+
+// --- Panel de vida y estado ---
+function updateStatusPanel(){
+  document.getElementById('vidaIzq').textContent = `Vida Base Azul: ${Math.max(0,baseIzq.vida)}`;
+  document.getElementById('vidaDer').textContent = `Vida Base Roja: ${Math.max(0,baseDer.vida)}`;
+}
+
+// --- Overlay de victoria/derrota ---
+function showOverlay(title,msg,victory){
+  let overlay = document.getElementById("overlay");
+  document.getElementById("overlayTitle").textContent = title;
+  document.getElementById("overlayMsg").innerHTML = msg;
+  overlay.style.display = "flex";
+  if(victory) { sonidos.victoria.currentTime=0; sonidos.victoria.play(); }
+  else { sonidos.derrota.currentTime=0.3; sonidos.derrota.play(); }
+}
+function hideOverlay(){
+  document.getElementById("overlay").style.display = "none";
+}
+
+// --- Reiniciar juego ---
+function restartGame(){
+  baseIzq.vida = baseIzq.vidaMax;
+  baseDer.vida = baseDer.vidaMax;
+  tropas = []; proyectiles = []; efectos = [];
+  elixir = elixirMax;
+  updateElixirUI();
+  updateStatusPanel();
+  hideOverlay();
+  setTimeout(gameLoop, 100);
+}
+
+// --- Loop principal ---
+let gameEnded = false;
+function gameLoop(){
+  if(baseIzq.vida<=0){
+    showOverlay("DERROTA", "<span style='font-size:1.3em;'>¡La base azul ha caído!</span>", false);
+    gameEnded = true; return;
+  }
+  if(baseDer.vida<=0){
+    showOverlay("¡VICTORIA!", "<span style='font-size:1.3em;'>¡Ganaste! La base roja ha caído</span>", true);
+    gameEnded = true; return;
+  }
+  gameEnded = false;
+  battle();
+  draw();
+  // IA lanza tropas random cada 2.5~4.1s
+  if(Math.random()<0.015 && elixir>=2) lanzarUnidadIA();
+  requestAnimationFrame(gameLoop);
+}
+updateStatusPanel();
+updateElixirUI();
 gameLoop();
+
 </script>
 </body>
 </html>
