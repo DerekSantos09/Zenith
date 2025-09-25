@@ -25,6 +25,7 @@
     border-radius: 15px;
     box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     max-width: 500px;
+    position: relative;
   }
   /* Memoria */
   #memory-grid button {
@@ -37,10 +38,16 @@
     background: #81d4fa;
     color: #ffffff;
     transition: transform 0.3s, background 0.3s;
+    perspective: 1000px;
   }
   #memory-grid button:hover {
     transform: scale(1.1);
     background: #29b6f6;
+  }
+  /* Animación flip */
+  .flipped {
+    transform: rotateY(180deg);
+    background: #4fc3f7;
   }
   /* Matemáticas */
   #math-answer {
@@ -61,6 +68,7 @@
   }
   button:hover {
     background: #0288d1;
+    transform: scale(1.1);
   }
   /* Ahorcado */
   #letter-input {
@@ -75,7 +83,7 @@
     margin-bottom: 10px;
     text-align: center;
   }
-  #hangman-feedback {
+  #hangman-feedback, #math-feedback, #memory-score {
     text-align: center;
     font-weight: bold;
     margin-top: 10px;
@@ -92,6 +100,7 @@
     <h3>🧠 Memoria</h3>
     <p style="text-align:center;">Encuentra las parejas iguales</p>
     <div id="memory-grid" style="display:grid; grid-template-columns: repeat(4, 60px); gap:10px; justify-content:center;"></div>
+    <div id="memory-score">Puntaje: 0</div>
   </div>
 
   <!-- Juego de Matemáticas -->
@@ -102,7 +111,8 @@
       <span id="math-question" style="font-size:1.2rem; margin-right:1rem;"></span>
       <input type="number" id="math-answer">
       <button onclick="checkMath()">Verificar</button>
-      <div id="math-feedback" style="margin-top:10px; font-weight:bold;"></div>
+      <div id="math-feedback"></div>
+      <div id="math-score">Puntaje: 0</div>
     </div>
   </div>
 
@@ -115,9 +125,14 @@
       <input type="text" id="letter-input" maxlength="1">
       <button onclick="guessLetter()">Probar</button>
       <div id="hangman-feedback"></div>
+      <div id="hangman-score">Puntaje: 0</div>
     </div>
   </div>
 </section>
+
+<!-- Sonidos -->
+<audio id="correct-sound" src="https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg"></audio>
+<audio id="wrong-sound" src="https://actions.google.com/sounds/v1/cartoon/cartoon_boing.ogg"></audio>
 
 <script>
 // ================= MEMORIA =================
@@ -126,6 +141,7 @@ const cards = ['A','A','B','B','C','C','D','D','E','E','F','F','G','G','H','H'];
 let shuffled = cards.sort(() => 0.5 - Math.random());
 let selected = [];
 let matched = [];
+let memoryScore = 0;
 
 shuffled.forEach((letter, idx) => {
   const card = document.createElement('button');
@@ -137,6 +153,7 @@ shuffled.forEach((letter, idx) => {
 function flipCard(idx, card) {
   if (selected.length < 2 && !matched.includes(idx)) {
     card.textContent = shuffled[idx];
+    card.classList.add('flipped');
     selected.push({idx, card});
     if (selected.length === 2) setTimeout(checkMatch, 500);
   }
@@ -144,19 +161,28 @@ function flipCard(idx, card) {
 
 function checkMatch() {
   const [first, second] = selected;
+  const correctSound = document.getElementById('correct-sound');
+  const wrongSound = document.getElementById('wrong-sound');
   if (shuffled[first.idx] === shuffled[second.idx]) {
     matched.push(first.idx, second.idx);
+    memoryScore += 10;
+    correctSound.play();
   } else {
     first.card.textContent = "?";
     second.card.textContent = "?";
+    first.card.classList.remove('flipped');
+    second.card.classList.remove('flipped');
+    wrongSound.play();
   }
   selected = [];
+  document.getElementById('memory-score').textContent = `Puntaje: ${memoryScore}`;
 }
 
 // ================= SUMAS =================
 let num1, num2;
 const questionEl = document.getElementById('math-question');
 const feedbackEl = document.getElementById('math-feedback');
+let mathScore = 0;
 
 function generateQuestion() {
   num1 = Math.floor(Math.random()*20)+1;
@@ -165,9 +191,18 @@ function generateQuestion() {
 }
 function checkMath() {
   const answer = parseInt(document.getElementById('math-answer').value);
-  if(answer === num1+num2) feedbackEl.textContent = "✅ Correcto!";
-  else feedbackEl.textContent = `❌ Incorrecto. La respuesta es ${num1+num2}`;
+  const correctSound = document.getElementById('correct-sound');
+  const wrongSound = document.getElementById('wrong-sound');
+  if(answer === num1+num2) {
+    feedbackEl.textContent = "✅ Correcto!";
+    mathScore += 10;
+    correctSound.play();
+  } else {
+    feedbackEl.textContent = `❌ Incorrecto. La respuesta es ${num1+num2}`;
+    wrongSound.play();
+  }
   document.getElementById('math-answer').value = "";
+  document.getElementById('math-score').textContent = `Puntaje: ${mathScore}`;
   generateQuestion();
 }
 generateQuestion();
@@ -176,6 +211,7 @@ generateQuestion();
 const words = ['GATO','CASA','PERRO','SOL','LUNA'];
 let word = words[Math.floor(Math.random()*words.length)];
 let display = Array(word.length).fill("_");
+let hangmanScore = 0;
 let hangmanFeedback = document.getElementById('hangman-feedback');
 const wordDisplay = document.getElementById('word-display');
 wordDisplay.textContent = display.join(" ");
@@ -183,6 +219,8 @@ wordDisplay.textContent = display.join(" ");
 function guessLetter() {
   const letter = document.getElementById('letter-input').value.toUpperCase();
   document.getElementById('letter-input').value = "";
+  const correctSound = document.getElementById('correct-sound');
+  const wrongSound = document.getElementById('wrong-sound');
   let found = false;
   for(let i=0;i<word.length;i++){
     if(word[i]===letter){
@@ -191,9 +229,23 @@ function guessLetter() {
     }
   }
   wordDisplay.textContent = display.join(" ");
-  if(!found) hangmanFeedback.textContent = "Letra incorrecta!";
-  else hangmanFeedback.textContent = "¡Bien!";
-  if(!display.includes("_")) hangmanFeedback.textContent = "🎉 ¡Ganaste!";
+  if(!found) {
+    hangmanFeedback.textContent = "Letra incorrecta!";
+    wrongSound.play();
+  } else {
+    hangmanFeedback.textContent = "¡Bien!";
+    correctSound.play();
+    hangmanScore += 5;
+  }
+  if(!display.includes("_")) {
+    hangmanFeedback.textContent = "🎉 ¡Ganaste!";
+    hangmanScore += 20;
+    // Reiniciar palabra
+    word = words[Math.floor(Math.random()*words.length)];
+    display = Array(word.length).fill("_");
+    wordDisplay.textContent = display.join(" ");
+  }
+  document.getElementById('hangman-score').textContent = `Puntaje: ${hangmanScore}`;
 }
 </script>
 
