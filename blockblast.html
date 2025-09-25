@@ -1,1 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Block Blast Épico</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <style>
+    body {
+      background: linear-gradient(135deg, #232526 0%, #414345 100%);
+      color: #fff;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin: 0;
+      min-height: 100vh;
+      transition: background 0.7s;
+    }
+    h1 {
+      margin-top: 32px;
+      font-size: 2.7em;
+      background: linear-gradient(90deg, #FFD600, #FF6B00, #00FFC6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      text-shadow: 0 4px 16px rgba(255,255,255,0.15);
+    }
+    #score {
+      font-size: 1.5em;
+      margin: 18px 0 10px 0;
+      font-weight: bold;
+      background: linear-gradient(90deg, #00FFC6, #FFD600, #FF6B00);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(9, 36px);
+      grid-template-rows: repeat(9, 36px);
+      gap: 4px;
+      background: #393e46;
+      border-radius: 14px;
+      box-shadow: 0 8px 32px #000a;
+      margin-bottom: 22px;
+      margin-top: 10px;
+      user-select: none;
+      position: relative;
+    }
+    .cell {
+      width: 36px;
+      height: 36px;
+      background: #22283180;
+      border-radius: 6px;
+      transition: background 0.2s, box-shadow 0.2s;
+      box-shadow: 0 2px 6px #0003;
+    }
+    .cell.filled {
+      background: linear-gradient(145deg, #FFD600, #FF6B00 60%, #00FFC6 100%);
+      box-shadow: 0 2px 16px #FFD60088, 0 1px 8px #00FFC688;
+      animation: pop 0.18s;
+    }
+    @keyframes pop {
+      0% { transform: scale(1.15);}
+      100% { transform: scale(1);}
+    }
+    .cell.highlight {
+      background: #FFF176 !important;
+      box-shadow: 0 0 15px 4px #FFD60099;
+    }
+    #pieces {
+      display: flex;
+      gap: 38px;
+      margin-bottom: 12px;
+      justify-content: center;
+    }
+    .piece {
+      display: grid;
+      grid-gap: 3px;
+      background: #393e46bd;
+      border-radius: 11px;
+      padding: 10px;
+      cursor: grab;
+      box-shadow: 0 3px 12px #0005;
+      transition: box-shadow 0.25s, transform 0.18s;
+      border: 2.5px solid #FFD60044;
+    }
+    .piece.dragging {
+      opacity: 0.6;
+      transform: scale(1.08) rotate(2deg);
+      box-shadow: 0 8px 24px #FF6B0088;
+    }
+    .piece-cell {
+      width: 24px;
+      height: 24px;
+      background: linear-gradient(145deg, #FFD600, #FF6B00 60%, #00FFC6 100%);
+      border-radius: 5px;
+      box-shadow: 0 1px 6px #FFD60055, 0 1px 4px #00FFC655;
+      transition: background 0.2s;
+    }
+    #game-over {
+      display: none;
+      position: fixed;
+      z-index: 99;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(34, 40, 49, 0.96);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.1em;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 1.5px;
+      color: #FFD600;
+      animation: fade-in 0.6s;
+    }
+    @keyframes fade-in {
+      0% { opacity: 0;}
+      100% { opacity: 1;}
+    }
+    #restart-btn {
+      margin-top: 18px;
+      font-size: 1em;
+      padding: 10px 34px;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(90deg, #FFD600, #00FFC6);
+      color: #222;
+      font-weight: bold;
+      box-shadow: 0 2px 12px #FFD60055;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.18s;
+    }
+    #restart-btn:hover {
+      background: linear-gradient(90deg, #FF6B00, #FFD600);
+      box-shadow: 0 4px 24px #FFD60099;
+    }
+    #credits {
+      margin-top: 32px;
+      color: #FFF8;
+      font-size: 1em;
+      text-align: center;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
+    @media (max-width: 600px) {
+      #board { 
+        grid-template-columns: repeat(9, 24px);
+        grid-template-rows: repeat(9, 24px);
+      }
+      .cell { width: 24px; height: 24px;}
+      .piece-cell { width: 16px; height: 16px;}
+      .piece { padding: 7px;}
+      h1 { font-size: 2em;}
+    }
+  </style>
+</head>
+<body>
+  <h1>Block Blast Épico</h1>
+  <div id="score">Puntuación: 0</div>
+  <div id="board"></div>
+  <div id="pieces"></div>
+  <div id="game-over">
+    <div>¡Game Over!<br>Puntuación final:<br><span id="final-score"></span></div>
+    <button id="restart-btn">Reintentar</button>
+  </div>
+  <div id="credits">
+    Hecho con 💥 por <b>DerekSantos09</b> & Copilot · 2025
+  </div>
+  <audio id="place-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12f91b1b77.mp3"></audio>
+  <audio id="clear-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12f91b1b77.mp3"></audio>
+  <audio id="fail-sound" src="https://cdn.pixabay.com/audio/2022/10/16/audio_12f91b1b77.mp3"></audio>
+  <script>
+    // --- CONFIGURACIÓN ---
+    const BOARD_SIZE = 9;
+    const PIECES_PER_ROUND = 3;
 
+    // --- PIEZAS DISPONIBLES ---
+    const PIECE_SHAPES = [
+      [[1]], // Bloque simple
+      [[1,1]],
+      [[1],[1]],
+      [[1,1,1]],
+      [[1],[1],[1]],
+      [[1,1,1,1]],
+      [[1],[1],[1],[1]],
+      [[1,1],[1,1]], // Cuadro 2x2
+      [[1,1,1],[0,1,0]],
+      [[1,1,1],[1,0,0]],
+      [[1,1,1],[0,0,1]],
+      [[0,1,1],[1,1,0]],
+      [[1,1,0],[0,1,1]],
+      [[1,1,1],[1,0,0],[1,0,0]],
+      [[0,0,1],[1,1,1],[0,0,1]],
+      [[1,1,1],[0,1,0],[0,1,0]],
+      [[0,1,0],[1,1,1],[0,1,0]],
+      [[1,0,0],[1,1,1]],
+      [[0,0,1],[1,1,1]],
+      [[1,1,1,1,1]],
+      [[1],[1],[1],[1],[1]],
+      [[1,1,1],[0,1,1]],
+      [[1,1,0],[1,1,1]],
+      [[1,1,1],[1,1,0]]
+    ];
+
+    // --- ESTADO DEL JUEGO ---
+    let board = [];
+    let score = 0;
+    let pieces = [];
+    let draggingPiece = null;
+    let draggingOffset = {x:0, y:0};
+    let draggingElem = null;
+
+    // --- ELEMENTOS DOM ---
+    const boardElem = document.getElementById('board');
+    const piecesElem = document.getElementById('pieces');
+    const scoreElem = document.getElementById('score');
+    const gameOverElem = document.getElementById('game-over');
+    const finalScoreElem = document.getElementById('final-score');
+    const restartBtn = document.getElementById('restart-btn');
+    const placeSound = document.getElementById('place-sound');
+    const clearSound = document.getElementById('clear-sound');
+    const failSound = document.getElementById('fail-sound');
+
+    // --- FUNCIONES DE JUEGO ---
+    function createBoard() {
+      board = [];
+      for(let r=0; r<BOARD_SIZE; r++) {
+        const row = [];
+        for(let c=0; c<BOARD_SIZE; c++) row.push(0);
+        board.push(row);
+      }
+    }
+    function renderBoard() {
+      boardElem.innerHTML = '';
+      for(let r=0; r<BOARD_SIZE; r++) {
+        for(let c=0; c<BOARD_SIZE; c++) {
+          const cell = document.createElement('div');
+          cell.className = 'cell' + (board[r][c] ? ' filled':'');
+          cell.dataset.r = r;
+          cell.dataset.c = c;
+          boardElem.appendChild(cell);
+        }
+      }
+    }
+    function renderPieces() {
+      piecesElem.innerHTML = '';
+      pieces.forEach((piece, idx) => {
+        const pieceElem = document.createElement('div');
+        pieceElem.className = 'piece';
+        pieceElem.style.gridTemplateColumns = `repeat(${piece[0].length}, 1fr)`;
+        pieceElem.style.gridTemplateRows = `repeat(${piece.length}, 1fr)`;
+        pieceElem.draggable = true;
+        pieceElem.dataset.idx = idx;
+        for(let r=0; r<piece.length; r++) {
+          for(let c=0; c<piece[r].length; c++) {
+            if(piece[r][c]) {
+              const pc = document.createElement('div');
+              pc.className = 'piece-cell';
+              pieceElem.appendChild(pc);
+            } else {
+              const empty = document.createElement('div');
+              empty.style.opacity = 0;
+              pieceElem.appendChild(empty);
+            }
+          }
+        }
+        pieceElem.addEventListener('dragstart', onDragStartPiece);
+        pieceElem.addEventListener('touchstart', onTouchStartPiece, {passive:false});
+        piecesElem.appendChild(pieceElem);
+      });
+    }
+    function randomPiece() {
+      const idx = Math.floor(Math.random()*PIECE_SHAPES.length);
+      return PIECE_SHAPES[idx];
+    }
+    function newPieces() {
+      pieces = [];
+      for(let i=0; i<PIECES_PER_ROUND; i++) {
+        pieces.push(randomPiece());
+      }
+      renderPieces();
+    }
+    function canPlace(piece, br, bc) {
+      for(let r=0; r<piece.length; r++) {
+        for(let c=0; c<piece[r].length; c++) {
+          if(piece[r][c]) {
+            const rr = br + r;
+            const cc = bc + c;
+            if(rr < 0 || rr >= BOARD_SIZE || cc < 0 || cc >= BOARD_SIZE) return false;
+            if(board[rr][cc]) return false;
+          }
+        }
+      }
+      return true;
+    }
+    function placePiece(piece, br, bc) {
+      for(let r=0; r<piece.length; r++) {
+        for(let c=0; c<piece[r].length; c++) {
+          if(piece[r][c]) {
+            board[br + r][bc + c] = 1;
+          }
+        }
+      }
+      renderBoard();
+      playSound(placeSound);
+      checkClear();
+    }
+    function checkClear() {
+      let cleared = false;
+      let linesCleared = 0;
+      // Filas
+      for(let r=0; r<BOARD_SIZE; r++) {
+        if(board[r].every(cell=>cell)) {
+          for(let c=0; c<BOARD_SIZE; c++) {
+            board[r][c] = 0;
+          }
+          cleared = true;
+          linesCleared++;
+        }
+      }
+      // Columnas
+      for(let c=0; c<BOARD_SIZE; c++) {
+        let full = true;
+        for(let r=0; r<BOARD_SIZE; r++) full = full && board[r][c];
+        if(full) {
+          for(let r=0; r<BOARD_SIZE; r++) board[r][c]=0;
+          cleared = true;
+          linesCleared++;
+        }
+      }
+      if(cleared) {
+        score += linesCleared * 100;
+        playSound(clearSound);
+        renderBoard();
+        updateScore();
+      }
+    }
+    function updateScore() {
+      scoreElem.textContent = "Puntuación: " + score;
+    }
+    function isGameOver() {
+      for(let p of pieces) {
+        for(let r=0; r<=BOARD_SIZE-p.length; r++) {
+          for(let c=0; c<=BOARD_SIZE-p[0].length; c++) {
+            if(canPlace(p, r, c)) return false;
+          }
+        }
+      }
+      return true;
+    }
+    function showGameOver() {
+      gameOverElem.style.display = 'flex';
+      finalScoreElem.textContent = score;
+      playSound(failSound);
+    }
+    function hideGameOver() {
+      gameOverElem.style.display = 'none';
+    }
+    // --- DRAG & DROP PIECES ---
+    function onDragStartPiece(e) {
+      draggingPiece = pieces[+e.target.dataset.idx];
+      draggingElem = e.target;
+      setTimeout(()=>{ draggingElem.classList.add('dragging'); }, 0);
+    }
+    boardElem.addEventListener('dragover', e => {
+      e.preventDefault();
+      if(!draggingPiece) return;
+      const rect = boardElem.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const cellSize = rect.width / BOARD_SIZE;
+      const r = Math.floor(y / cellSize);
+      const c = Math.floor(x / cellSize);
+      highlightPlacement(r, c);
+    });
+    boardElem.addEventListener('drop', e => {
+      e.preventDefault();
+      if(!draggingPiece) return;
+      const rect = boardElem.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const cellSize = rect.width / BOARD_SIZE;
+      const r = Math.floor(y / cellSize);
+      const c = Math.floor(x / cellSize);
+      tryPlaceDraggedPiece(r, c);
+    });
+    document.addEventListener('dragend', () => {
+      draggingPiece = null;
+      if(draggingElem) draggingElem.classList.remove('dragging');
+      clearHighlight();
+    });
+
+    // --- TOUCH SUPPORT ---
+    function onTouchStartPiece(e) {
+      e.preventDefault();
+      draggingElem = e.target.closest('.piece');
+      draggingPiece = pieces[+draggingElem.dataset.idx];
+      draggingElem.classList.add('dragging');
+      draggingOffset = {
+        x: e.touches[0].clientX - draggingElem.getBoundingClientRect().left,
+        y: e.touches[0].clientY - draggingElem.getBoundingClientRect().top
+      };
+      document.addEventListener('touchmove', onTouchMovePiece, {passive:false});
+      document.addEventListener('touchend', onTouchEndPiece);
+    }
+    function onTouchMovePiece(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const rect = boardElem.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      const cellSize = rect.width / BOARD_SIZE;
+      const r = Math.floor(y / cellSize);
+      const c = Math.floor(x / cellSize);
+      highlightPlacement(r, c);
+    }
+    function onTouchEndPiece(e) {
+      clearHighlight();
+      const touch = e.changedTouches[0];
+      const rect = boardElem.getBoundingClientRect();
+      const x = touch.clientX - rect.left;
+      const y = touch.clientY - rect.top;
+      const cellSize = rect.width / BOARD_SIZE;
+      const r = Math.floor(y / cellSize);
+      const c = Math.floor(x / cellSize);
+      tryPlaceDraggedPiece(r, c);
+      draggingElem.classList.remove('dragging');
+      draggingPiece = null;
+      document.removeEventListener('touchmove', onTouchMovePiece, {passive:false});
+      document.removeEventListener('touchend', onTouchEndPiece);
+    }
+
+    // --- UTILIDAD PARA HIGHLIGHT ---
+    function highlightPlacement(br, bc) {
+      clearHighlight();
+      if(!draggingPiece) return;
+      for(let r=0; r<draggingPiece.length; r++) {
+        for(let c=0; c<draggingPiece[r].length; c++) {
+          if(draggingPiece[r][c]) {
+            const rr = br + r;
+            const cc = bc + c;
+            if(rr < 0 || rr >= BOARD_SIZE || cc < 0 || cc >= BOARD_SIZE) continue;
+            const idx = rr*BOARD_SIZE + cc;
+            boardElem.children[idx].classList.add('highlight');
+          }
+        }
+      }
+    }
+    function clearHighlight() {
+      Array.from(boardElem.children).forEach(cell => cell.classList.remove('highlight'));
+    }
+    function tryPlaceDraggedPiece(r, c) {
+      if(draggingPiece && canPlace(draggingPiece, r, c)) {
+        placePiece(draggingPiece, r, c);
+        const idx = pieces.findIndex(p => p === draggingPiece);
+        if(idx !== -1) pieces.splice(idx,1);
+        renderPieces();
+        updateScore();
+        draggingPiece = null;
+        clearHighlight();
+        if(pieces.length === 0) {
+          newPieces();
+        }
+        if(isGameOver()) {
+          setTimeout(showGameOver, 400);
+        }
+      }
+      clearHighlight();
+    }
+    // --- SONIDOS ---
+    function playSound(soundElem) {
+      try {
+        soundElem.currentTime = 0;
+        soundElem.play();
+      } catch(e){}
+    }
+    // --- REINICIAR ---
+    restartBtn.addEventListener('click', startGame);
+
+    // --- INICIO ---
+    function startGame() {
+      createBoard();
+      score = 0;
+      newPieces();
+      renderBoard();
+      updateScore();
+      hideGameOver();
+    }
+    // --- AUTOINICIO ---
+    startGame();
+  </script>
+</body>
+</html>
