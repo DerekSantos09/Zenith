@@ -60,10 +60,12 @@ body {
   transition: transform 0.13s cubic-bezier(.7,1.7,.5,1), box-shadow .2s;
   letter-spacing: 0.5px;
 }
-.unit-btn:active {
+.unit-btn:active, .unit-btn.seleccionada {
   transform: scale(0.95);
   box-shadow: 0 1px 5px #0008;
+  outline: 3px solid #22f2ff;
 }
+
 #gameCanvas {
   display: block;
   margin: 0 auto;
@@ -84,6 +86,35 @@ body {
   letter-spacing: 1px;
   position: relative;
   z-index: 2;
+}
+#elixirBarIA-bg {
+  width: 220px;
+  height: 23px;
+  background: #223057;
+  border-radius: 12px;
+  border: 2px solid #f8baba;
+  box-shadow: 0 2px 8px #0007;
+  position: relative;
+  overflow: hidden;
+  margin-left: 18px;
+  margin-top: 5px;
+}
+#elixirBarIA-inner {
+  position: absolute;
+  left: 0; top: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #ffb9c3 0%, #ff8f8f 100%);
+  border-radius: 12px 0 0 12px;
+  transition: width 0.4s cubic-bezier(.5,1.5,.5,1);
+  box-shadow: 0 0 9px #fff7;
+}
+#elixirBarIA-label {
+  position: absolute;
+  width: 100%; text-align: center; top: 0;
+  font-size: 15px; font-weight: bold;
+  color: #600;
+  text-shadow: 1px 1px 3px #fff8, 0 0 12px #fff6;
+  line-height: 23px;
 }
 #overlay {
   display: none;
@@ -118,6 +149,7 @@ body {
 @media (max-width: 900px) {
   #gameCanvas { width: 98vw !important; height: 48vw !important; max-width: 700px; max-height: 350px;}
   .status-panel { width: 95vw; font-size: 17px;}
+  #elixirBarIA-bg {width: 98vw !important;}
 }
 </style>
 </head>
@@ -129,13 +161,22 @@ body {
   <span id="vidaDer">Vida Base Roja: 500</span>
 </div>
 <div id="ui">
-  <div class="elixir-bar-bg">
-    <div class="elixir-bar-inner" id="elixirBar"></div>
-    <div class="elixir-label" id="elixirLabel">10 / 10</div>
+  <div>
+    <div class="elixir-bar-bg">
+      <div class="elixir-bar-inner" id="elixirBar"></div>
+      <div class="elixir-label" id="elixirLabel">10 / 10</div>
+    </div>
+    <div id="elixirBarIA-bg">
+      <div id="elixirBarIA-inner"></div>
+      <div id="elixirBarIA-label">10 / 10</div>
+    </div>
   </div>
-  <button class="unit-btn" onclick="lanzarUnidad('tanque')">Tanque<br><small>4💧</small></button>
-  <button class="unit-btn" onclick="lanzarUnidad('rapido')">Rápido<br><small>2💧</small></button>
-  <button class="unit-btn" onclick="lanzarUnidad('magico')">Mágico<br><small>3💧</small></button>
+  <button class="unit-btn" id="btn_tanque" onclick="seleccionarUnidad('tanque')">Tanque<br><small>4💧</small></button>
+  <button class="unit-btn" id="btn_rapido" onclick="seleccionarUnidad('rapido')">Rápido<br><small>2💧</small></button>
+  <button class="unit-btn" id="btn_magico" onclick="seleccionarUnidad('magico')">Mágico<br><small>3💧</small></button>
+  <button class="unit-btn" id="btn_arquero" onclick="seleccionarUnidad('arquero')">Arquero<br><small>2💧</small></button>
+  <button class="unit-btn" id="btn_gigante" onclick="seleccionarUnidad('gigante')">Gigante<br><small>6💧</small></button>
+  <button class="unit-btn" id="btn_minipekka" onclick="seleccionarUnidad('minipekka')">Mini PEKKA<br><small>5💧</small></button>
 </div>
 <canvas id="gameCanvas" width="900" height="420"></canvas>
 
@@ -160,13 +201,19 @@ const COLORS = {
   magico: ['#b164ff','#edb8ff'],
   rapido: ['#ffd700','#fffab7'],
   tanque: ['#b8b8b8','#575757'],
+  arquero: ['#97edb8','#3ea75a'],
+  gigante: ['#ffdeab','#e08a2e'],
+  minipekka: ['#a6b8ff','#3c4b8a'],
   proyectil: ['#fff700','#ff3a3a','#00e1ff'],
   sombra: '#0005'
 };
 const NOMBRES = {
   tanque: 'Tanque',
   rapido: 'Rápido',
-  magico: 'Mágico'
+  magico: 'Mágico',
+  arquero: 'Arquero',
+  gigante: 'Gigante',
+  minipekka: 'Mini PEKKA'
 };
 
 // --- Canvas y contexto ---
@@ -187,40 +234,40 @@ const torresDer = [{x:canvas.width-218,y:115,w:38,h:38,vida:130,ataque:16,rango:
 let proyectiles = [];
 let efectos = [];
 
-// --- Sistema de elixir ---
-let elixir = 10, elixirMax = 10;
+// --- Sistema de elixir (jugador y IA) ---
+let elixirPlayer = 10, elixirPlayerMax = 10;
+let elixirAI = 10, elixirAIMax = 10;
 let elixirBar = document.getElementById('elixirBar');
 let elixirLabel = document.getElementById('elixirLabel');
+let elixirBarIA = document.getElementById('elixirBarIA-inner');
+let elixirLabelIA = document.getElementById('elixirBarIA-label');
+
+// Elixir jugador
 setInterval(()=>{
-  if(elixir < elixirMax) elixir++;
+  if(elixirPlayer < elixirPlayerMax) elixirPlayer++;
   updateElixirUI();
 }, 1250);
+// Elixir IA
+setInterval(()=>{
+  if(elixirAI < elixirAIMax) elixirAI++;
+  updateElixirUI();
+}, 1250);
+
 function updateElixirUI() {
-  let percent = (elixir/elixirMax);
+  let percent = (elixirPlayer/elixirPlayerMax);
   elixirBar.style.width = (percent*100)+"%";
-  elixirLabel.textContent = elixir + " / " + elixirMax;
+  elixirLabel.textContent = elixirPlayer + " / " + elixirPlayerMax;
   elixirBar.style.background = percent === 1
     ? 'linear-gradient(90deg,#6ef4ff 0%,#ffd700 100%)'
     : 'linear-gradient(90deg,#6ef4ff 0%,#a66bff 100%)';
-}
 
-// --- Sprites (simples, cartoon, SVGs incrustados) ---
-function drawBase(x, y, w, h, color, side) {
-  ctx.save();
-  ctx.shadowColor = COLORS.sombra;
-  ctx.shadowBlur = 16;
-  ctx.fillStyle = color;
-  ctx.fillRect(x, y, w, h);
-  ctx.shadowBlur = 0;
-  // Puerta y detalles
-  ctx.fillStyle = "#fff9";
-  ctx.fillRect(x+w/2-8, y+h-36, 16, 32);
-  ctx.strokeStyle = "#fff";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(x+w/2, y+h-16, 13, Math.PI, 0);
-  ctx.stroke();
-  ctx.restore();
+  // IA
+  let percentAI = (elixirAI/elixirAIMax);
+  elixirBarIA.style.width = (percentAI*100)+"%";
+  elixirLabelIA.textContent = elixirAI + " / " + elixirAIMax;
+  elixirBarIA.style.background = percentAI === 1
+    ? 'linear-gradient(90deg,#ffb9c3 0%,#ffde84 100%)'
+    : 'linear-gradient(90deg,#ffb9c3 0%,#ff8f8f 100%)';
 }
 
 // --- Sonidos (más cartoon) ---
@@ -232,20 +279,68 @@ const sonidos = {
   derrota: new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa6f7e.mp3")
 };
 
-// --- Clase Unidad ---
+// --- Selección de unidad y despliegue con click ---
+let unidadSeleccionada = null;
+function seleccionarUnidad(tipo){
+  if(unidadSeleccionada === tipo) {
+    unidadSeleccionada = null;
+    Array.from(document.getElementsByClassName('unit-btn')).forEach(b=>b.classList.remove('seleccionada'));
+  } else {
+    unidadSeleccionada = tipo;
+    Array.from(document.getElementsByClassName('unit-btn')).forEach(b=>b.classList.remove('seleccionada'));
+    document.getElementById('btn_'+tipo).classList.add('seleccionada');
+  }
+}
+canvas.addEventListener('click', function(e){
+  if(!unidadSeleccionada) return;
+  let rect = canvas.getBoundingClientRect();
+  let x = e.clientX - rect.left, y = e.clientY - rect.top;
+  if(x > canvas.width/2 - 30) return; // solo tu lado (izquierda)
+  lanzarUnidad(unidadSeleccionada, x, y, "izq");
+  seleccionarUnidad(null);
+});
+function lanzarUnidad(tipo, x, y, side){
+  const costos = { tanque:4, rapido:2, magico:3, arquero:2, gigante:6, minipekka:5 };
+  let costo = costos[tipo]||3;
+  if(side === "izq") {
+    if(elixirPlayer < costo) {
+      elixirBar.style.background = 'linear-gradient(90deg,#ff5e00 0%,#ffb700 100%)';
+      setTimeout(updateElixirUI, 350);
+      return;
+    }
+    elixirPlayer -= costo;
+    updateElixirUI();
+    sonidos.lanzar.currentTime=0; sonidos.lanzar.play();
+  } else {
+    if(elixirAI < costo) return;
+    elixirAI -= costo;
+    updateElixirUI();
+  }
+  // Normaliza Y a carril más cercano
+  let minDist = 9999, bestY = carriles[0];
+  for(let l of carriles) if(Math.abs(y-l)<minDist) { minDist=Math.abs(y-l); bestY=l; }
+  // X por defecto para IA/jugador si no se da
+  if(!x) x = (side=="izq"?130:canvas.width-130-38);
+  tropas.push(new Unidad(x, bestY, tipo, side=="izq"?1:-1, side));
+}
+
+// --- Clase Unidad (ahora soporta más tipos) ---
 class Unidad{
   constructor(x,y,tipo,direccion,side){
     this.x=x; this.y=y; this.tipo=tipo; this.direccion=direccion; this.side=side;
+    // Stats por tipo
     if(tipo==='tanque'){this.vida=160; this.vidaMax=160; this.vel=0.6; this.atq=24; this.tam=44;}
     if(tipo==='rapido'){this.vida=80; this.vidaMax=80; this.vel=2.2; this.atq=12; this.tam=32;}
     if(tipo==='magico'){this.vida=85; this.vidaMax=85; this.vel=1.1; this.atq=29; this.tam=34;}
+    if(tipo==='arquero'){this.vida=56; this.vidaMax=56; this.vel=1.3; this.atq=18; this.tam=28; this.rango=110;}
+    if(tipo==='gigante'){this.vida=320; this.vidaMax=320; this.vel=0.5; this.atq=33; this.tam=54;}
+    if(tipo==='minipekka'){this.vida=110; this.vidaMax=110; this.vel=1.7; this.atq=46; this.tam=34;}
     this.frame=0; this.frameMax=5;
     this.cd=0;
     this.dañoAnim=0;
   }
   mover(){ this.x += this.vel*this.direccion; }
   dibujar(){
-    // Sombra
     ctx.save();
     ctx.globalAlpha = 0.34;
     ctx.fillStyle = "#000";
@@ -255,8 +350,9 @@ class Unidad{
     ctx.globalAlpha = 1;
 
     // Cuerpo principal (cartoon)
+    let grad;
     if(this.tipo==="tanque"){
-      let grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
       grad.addColorStop(0,COLORS.tanque[0]); grad.addColorStop(1,COLORS.tanque[1]);
       ctx.fillStyle = grad;
       ctx.fillRect(this.x, this.y, this.tam, this.tam-8);
@@ -266,7 +362,7 @@ class Unidad{
       ctx.fillRect(this.x+this.tam/2-6, this.y+2, 12, this.tam-18);
     }
     if(this.tipo==="rapido"){
-      let grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
       grad.addColorStop(0,COLORS.rapido[0]); grad.addColorStop(1,COLORS.rapido[1]);
       ctx.beginPath();
       ctx.ellipse(this.x+this.tam/2,this.y+this.tam/2,this.tam/2.1,this.tam/2.7,0,0,2*Math.PI); ctx.fillStyle=grad;
@@ -278,7 +374,7 @@ class Unidad{
       ctx.ellipse(this.x+this.tam/2+4, this.y+this.tam/2-7, 7, 4, 0, 0, 2*Math.PI); ctx.fill();
     }
     if(this.tipo==="magico"){
-      let grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
       grad.addColorStop(0,COLORS.magico[0]); grad.addColorStop(1,COLORS.magico[1]);
       ctx.beginPath();
       ctx.arc(this.x+this.tam/2,this.y+this.tam/2,this.tam/2,0,2*Math.PI); ctx.fillStyle=grad;
@@ -288,6 +384,32 @@ class Unidad{
       ctx.font="bold 17px Segoe UI";
       ctx.globalAlpha=0.33; ctx.fillText("★",this.x+this.tam/2-8,this.y+this.tam/2+6);
       ctx.globalAlpha=1;
+    }
+    if(this.tipo==="arquero"){
+      grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad.addColorStop(0,COLORS.arquero[0]); grad.addColorStop(1,COLORS.arquero[1]);
+      ctx.fillStyle=grad;
+      ctx.beginPath();ctx.arc(this.x+this.tam/2,this.y+this.tam/2,this.tam/2,0,2*Math.PI);ctx.fill();
+      ctx.fillStyle="#333a";
+      ctx.fillRect(this.x+this.tam/2-3,this.y+this.tam/2,6,this.tam/2);
+    }
+    if(this.tipo==="gigante"){
+      grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad.addColorStop(0,COLORS.gigante[0]); grad.addColorStop(1,COLORS.gigante[1]);
+      ctx.fillStyle=grad;
+      ctx.fillRect(this.x, this.y, this.tam, this.tam-8);
+      ctx.fillStyle="#a67b4a";
+      ctx.fillRect(this.x+this.tam/2-7, this.y+8, 14, this.tam-22);
+      ctx.strokeStyle="#e08a2e"; ctx.lineWidth=2;
+      ctx.strokeRect(this.x+2,this.y+4,this.tam-4,this.tam-16);
+    }
+    if(this.tipo==="minipekka"){
+      grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
+      grad.addColorStop(0,COLORS.minipekka[0]); grad.addColorStop(1,COLORS.minipekka[1]);
+      ctx.fillStyle=grad;
+      ctx.beginPath(); ctx.arc(this.x+this.tam/2,this.y+this.tam/2,this.tam/2,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle="#fff";
+      ctx.fillRect(this.x+this.tam/2-4,this.y+this.tam/2-2,8,10);
     }
     // Animación de daño (blink)
     if(this.dañoAnim>0){
@@ -370,37 +492,19 @@ class Efecto{
 // --- Tropas ---
 let tropas=[];
 
-// --- Lanzar unidad ---
-function lanzarUnidad(tipo){
-  const costo = tipo==='tanque'?4:tipo==='rapido'?2:3;
-  if(elixir < costo) {
-    // animar barra de elixir
-    elixirBar.style.background = 'linear-gradient(90deg,#ff5e00 0%,#ffb700 100%)';
-    setTimeout(updateElixirUI, 350);
-    return;
-  }
-  elixir -= costo;
-  updateElixirUI();
-  sonidos.lanzar.currentTime=0; sonidos.lanzar.play();
-
-  // lado jugador: izq, lado IA: der
-  const carrilY = carriles[Math.floor(Math.random()*carriles.length)];
-  tropas.push(new Unidad(130, carrilY, tipo, 1, "izq"));
-}
-
 // --- Lanzar unidad IA ---
 function lanzarUnidadIA(){
   if(baseDer.vida<=0) return;
-  if(elixir < 2) return;
-  // decide qué lanzar
-  let choice = Math.random();
-  let tipo = (choice<0.35) ? 'tanque' : (choice<0.7?'rapido':'magico');
-  const costo = tipo==='tanque'?4:tipo==='rapido'?2:3;
-  if(elixir < costo) return;
-  elixir -= costo;
-  updateElixirUI();
+  // Decide tipo y costo
+  let tipos = ['tanque','rapido','magico','arquero','gigante','minipekka'];
+  let tipo = tipos[Math.floor(Math.random()*tipos.length)];
+  const costos = { tanque:4, rapido:2, magico:3, arquero:2, gigante:6, minipekka:5 };
+  let costo = costos[tipo]||3;
+  if(elixirAI < costo) return;
+  // Carril random, x random pero solo en su mitad
   const carrilY = carriles[Math.floor(Math.random()*carriles.length)];
-  tropas.push(new Unidad(canvas.width-130-38, carrilY, tipo, -1, "der"));
+  let x = canvas.width - 130 - Math.random()*40;
+  lanzarUnidad(tipo, x, carrilY, "der");
 }
 
 // --- Función batalla principal ---
@@ -425,6 +529,10 @@ function battle(){
           proyectiles.push(new Proyectil(u.x+u.tam/2,u.y+u.tam/2,v,u.atq,'#30d0ff'));
           u.cd=25+Math.floor(Math.random()*6);
         }
+        else if(u.tipo==='arquero' && u.cd<=0){
+          proyectiles.push(new Proyectil(u.x+u.tam/2,u.y+u.tam/2,v,u.atq,'#41e171'));
+          u.cd=22+Math.floor(Math.random()*8);
+        }
         else if(u.cd<=0){
           v.vida-=u.atq; u.vida-=v.atq;
           v.dañoAnim = 5; u.dañoAnim = 5;
@@ -432,6 +540,11 @@ function battle(){
           u.cd=18+Math.floor(Math.random()*4);
           v.cd=18+Math.floor(Math.random()*4);
         }
+      }
+      // Rango arquero
+      if(u.tipo==='arquero' && Math.abs(u.x-v.x)<u.rango && Math.abs(u.y-v.y)<carrilH/2 && u.side!=="der" && u.cd<=0){
+        proyectiles.push(new Proyectil(u.x+u.tam/2,u.y+u.tam/2,v,u.atq,'#41e171'));
+        u.cd=22+Math.floor(Math.random()*8);
       }
     });
   });
@@ -562,7 +675,8 @@ function restartGame(){
   baseIzq.vida = baseIzq.vidaMax;
   baseDer.vida = baseDer.vidaMax;
   tropas = []; proyectiles = []; efectos = [];
-  elixir = elixirMax;
+  elixirPlayer = elixirPlayerMax;
+  elixirAI = elixirAIMax;
   updateElixirUI();
   updateStatusPanel();
   hideOverlay();
@@ -583,8 +697,8 @@ function gameLoop(){
   gameEnded = false;
   battle();
   draw();
-  // IA lanza tropas random cada 2.5~4.1s
-  if(Math.random()<0.015 && elixir>=2) lanzarUnidadIA();
+  // IA lanza tropas random cada 2.5~4.1s si tiene elixir suficiente
+  if(Math.random()<0.015 && elixirAI>=2) lanzarUnidadIA();
   requestAnimationFrame(gameLoop);
 }
 updateStatusPanel();
