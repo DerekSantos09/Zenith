@@ -1,6 +1,7 @@
 {
   "name": "zenith-backend",
   "version": "1.0.0",
+  "type": "module",
   "description": "Backend de Zenith para chat con OpenAI",
   "main": "server.js",
   "scripts": {
