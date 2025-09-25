@@ -6,7 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-    <!-- Google Fonts para el título -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
     <style>
         body {
@@ -32,14 +31,30 @@
             color: #f3e8ff;
             margin-top: 0.5rem;
         }
+        #search-container {
+            display: flex;
+            justify-content: center;
+            margin: 1rem auto 0 auto;
+        }
+        #search {
+            width: 350px;
+            max-width: 98vw;
+            font-size: 1rem;
+            padding: 0.7rem 1rem;
+            border-radius: 18px;
+            border: none;
+            box-shadow: 0 2px 8px #0002;
+        }
         #map {
             width: 90vw;
-            height: 80vh;
+            height: 78vh;
             max-width: 1200px;
-            margin: 2rem auto;
+            margin: 1.5rem auto 2rem auto;
             border-radius: 18px;
             box-shadow: 0 6px 30px #0008;
             border: 3px solid #fff;
+            position: relative;
+            z-index: 1;
         }
         #loader {
             display: flex;
@@ -48,22 +63,31 @@
             color: #fff;
             font-size: 1.3rem;
             font-family: 'Montserrat', Arial, sans-serif;
-            position: absolute;
+            position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
             z-index: 1000;
-            background: rgba(34, 34, 34, 0.7);
+            background: rgba(34, 34, 34, 0.92);
         }
         @media (max-width: 900px) {
-            #map { width: 98vw; height: 70vh; }
+            #map { width: 98vw; height: 60vh; }
+            #search { width: 98vw; }
+        }
+        .leaflet-popup-content {
+            font-size: 1.06rem;
         }
     </style>
 </head>
 <body>
     <header>
         <h1>🇲🇽 Universidades de México</h1>
-        <p>Mapa interactivo de universidades mexicanas usando datos en tiempo real.<br>
-        <small>(La carga inicial puede tardar unos segundos, ¡gracias por tu paciencia!)</small></p>
+        <p>
+            Mapa interactivo de universidades mexicanas en tiempo real.<br>
+            <small>(La primera carga puede tardar unos minutos. Usando caché para más velocidad la próxima vez.)</small>
+        </p>
     </header>
+    <div id="search-container">
+        <input type="text" id="search" placeholder="🔎 Busca universidad o estado...">
+    </div>
     <div id="map"></div>
     <div id="loader" style="display:none;">Cargando universidades de México...</div>
 
@@ -71,7 +95,9 @@
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script>
         const loader = document.getElementById('loader');
-        loader.style.display = 'flex';
+        const searchInput = document.getElementById('search');
+        let allUniversities = [];
+        let allMarkers = [];
 
         // Inicializa el mapa centrado en México
         var map = L.map('map').setView([23.6345, -102.5528], 5.2);
@@ -98,7 +124,6 @@
 
         // Geocodifica el nombre de la universidad + país usando Nominatim (OpenStreetMap)
         async function geocodeUniversity(university) {
-            // Nominatim limita el uso, así que agregamos ciudad si está disponible y pausas entre requests
             const query = encodeURIComponent(`${university.name}, ${university['state-province'] ? university['state-province'] + ', ' : ''}Mexico`);
             const url = `https://nominatim.openstreetmap.org/search?q=${query}&format=json&limit=1`;
             try {
@@ -117,39 +142,85 @@
             }
         }
 
-        // Duerme (ms) para evitar rate limits
         function sleep(ms) { return new Promise(res => setTimeout(res, ms)); }
 
+        // Guarda y carga caché en localStorage
+        function saveCache(data) {
+            localStorage.setItem('universidades-mx', JSON.stringify(data));
+            localStorage.setItem('universidades-mx-date', new Date().toISOString());
+        }
+        function loadCache() {
+            const data = localStorage.getItem('universidades-mx');
+            return data ? JSON.parse(data) : null;
+        }
+        function cacheFresh() {
+            const date = localStorage.getItem('universidades-mx-date');
+            if (!date) return false;
+            // Válido por 15 días
+            return (new Date() - new Date(date)) < 15 * 24 * 60 * 60 * 1000;
+        }
+
+        // Filtra universidades y actualiza marcadores
+        function filterAndShowMarkers(query) {
+            const q = query.trim().toLowerCase();
+            const filtered = !q
+                ? allUniversities
+                : allUniversities.filter(u =>
+                    u.name.toLowerCase().includes(q) ||
+                    (u['state-province'] && u['state-province'].toLowerCase().includes(q))
+                );
+            // Limpia marcadores
+            allMarkers.forEach(m => map.removeLayer(m));
+            allMarkers = [];
+            // Agrega filtrados
+            filtered.forEach(u => {
+                const marker = L.marker([u.lat, u.lon], {icon: universityIcon})
+                    .addTo(map)
+                    .bindPopup(`
+                        <strong>${u.name}</strong><br>
+                        <em>${u['state-province'] ? u['state-province'] + ', ' : ''}México</em><br>
+                        <a href="${u.web_pages[0]}" target="_blank" rel="noopener noreferrer">Sitio web</a>
+                    `);
+                allMarkers.push(marker);
+            });
+            if (filtered.length > 1) {
+                const group = new L.featureGroup(allMarkers);
+                map.fitBounds(group.getBounds().pad(0.08));
+            } else if (filtered.length === 1) {
+                map.setView([filtered[0].lat, filtered[0].lon], 14);
+                allMarkers[0].openPopup();
+            }
+        }
+
+        searchInput.addEventListener('input', e => filterAndShowMarkers(e.target.value));
+
         async function main() {
-            const universities = await fetchUniversitiesMX();
-            const markers = [];
-            // Nominatim recomienda max 1 request por segundo
-            let count = 0;
-            for (let uni of universities) {
-                loader.innerText = `Geolocalizando: ${uni.name} (${++count}/${universities.length})`;
-                let coords = await geocodeUniversity(uni);
-                if (!coords) {
-                    // Intenta solo con el nombre y México si la búsqueda con estado falla
-                    coords = await geocodeUniversity({name: uni.name});
+            let universidades;
+            loader.style.display = 'flex';
+            // Usa caché si es reciente
+            if (cacheFresh()) {
+                universidades = loadCache();
+            } else {
+                universidades = await fetchUniversitiesMX();
+                let geoed = [];
+                let count = 0;
+                for (let uni of universidades) {
+                    loader.innerText = `Geolocalizando: ${uni.name} (${++count}/${universidades.length})`;
+                    let coords = await geocodeUniversity(uni);
+                    if (!coords) coords = await geocodeUniversity({name: uni.name});
+                    if (coords) geoed.push({
+                        ...uni,
+                        lat: coords.lat,
+                        lon: coords.lon
+                    });
+                    await sleep(1100);
                 }
-                if (coords) {
-                    const marker = L.marker([coords.lat, coords.lon], {icon: universityIcon})
-                        .addTo(map)
-                        .bindPopup(`
-                            <strong>${uni.name}</strong><br>
-                            <em>${uni['state-province'] ? uni['state-province'] + ', ' : ''}México</em><br>
-                            <a href="${uni.web_pages[0]}" target="_blank" rel="noopener noreferrer">Sitio web</a>
-                        `);
-                    markers.push(marker);
-                }
-                // Espera 1100ms para evitar bloqueo de Nominatim
-                await sleep(1100);
+                universidades = geoed;
+                saveCache(universidades);
             }
+            allUniversities = universidades.filter(u => u.lat && u.lon);
             loader.style.display = 'none';
-            if (markers.length > 1) {
-                var group = new L.featureGroup(markers);
-                map.fitBounds(group.getBounds().pad(0.1));
-            }
+            filterAndShowMarkers('');
         }
 
         main();
