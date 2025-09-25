@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Mini Clash Fusion Ultra + Sonido</title>
+<style>
+body { text-align:center; font-family:sans-serif; background:#a2d5c6; }
+canvas { display:block; margin:0 auto; border:2px solid #333; background:#7ec850; }
+#ui { margin:10px; font-size:18px; }
+button { margin:5px; padding:10px; font-size:16px; cursor:pointer; border-radius:5px; background:#fff; border:1px solid #333; }
+</style>
+</head>
+<body>
+<h1>Mini Clash Fusion Ultra Animado + Sonido</h1>
+<div id="ui">
+  <span id="elixir">Elixir: 10</span>
+  <button onclick="lanzarUnidad('tanque')">Tanque (4)</button>
+  <button onclick="lanzarUnidad('rapido')">Rápido (2)</button>
+  <button onclick="lanzarUnidad('magico')">Mágico (3)</button>
+</div>
+<canvas id="gameCanvas" width="800" height="400"></canvas>
+
+<script>
+// Canvas
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Carriles
+const carriles = [50, 150, 250];
+
+// Bases
+const baseIzq = {x:50,y:100,w:50,h:200,vida:500};
+const baseDer = {x:700,y:100,w:50,h:200,vida:500};
+
+// Torres
+const torresIzq = [{x:180,y:120,w:30,h:30,vida:100,ataque:15,rango:100}];
+const torresDer = [{x:590,y:120,w:30,h:30,vida:100,ataque:15,rango:100}];
+
+// Proyectiles y efectos
+let proyectiles = [];
+let efectos = [];
+
+// Sistema de elixir
+let elixir = 10;
+setInterval(()=>{if(elixir<10) elixir++; document.getElementById("elixir").innerText=`Elixir: ${elixir}`;},1000);
+
+// Sprites
+const sprites = {
+  tanque: new Image(), rapido: new Image(), magico: new Image(),
+  torre: new Image(), fondo: new Image()
+};
+sprites.tanque.src = "https://i.imgur.com/1J0JZK8.png";
+sprites.rapido.src = "https://i.imgur.com/GxT7WkI.png";
+sprites.magico.src = "https://i.imgur.com/IGkmxxH.png";
+sprites.torre.src = "https://i.imgur.com/3H0s6ZL.png";
+sprites.fondo.src = "https://i.imgur.com/OdL0XPt.png";
+
+// Sonidos
+const sonidos = {
+  lanzar: new Audio("https://www.soundjay.com/buttons/sounds/button-16.mp3"),
+  impacto: new Audio("https://www.soundjay.com/mechanical/sounds/mechanical-clack-02.mp3"),
+  explosion: new Audio("https://www.soundjay.com/explosion/sounds/explosion-01.mp3")
+};
+
+// Clase Unidad
+class Unidad{
+  constructor(x,y,tipo,direccion){
+    this.x=x; this.y=y; this.tipo=tipo; this.direccion=direccion;
+    if(tipo==='tanque'){this.vida=150; this.vel=0.5; this.atq=20; this.tam=40; this.sprite=sprites.tanque;}
+    if(tipo==='rapido'){this.vida=70; this.vel=2; this.atq=10; this.tam=30; this.sprite=sprites.rapido;}
+    if(tipo==='magico'){this.vida=80; this.vel=1; this.atq=25; this.tam=30; this.sprite=sprites.magico;}
+    this.frame=0; this.frameMax=4;
+  }
+  mover(){this.x+=this.vel*this.direccion;}
+  dibujar(){
+    ctx.drawImage(this.sprite,this.frame*this.tam,0,this.tam,this.tam,this.x,this.y,this.tam,this.tam);
+    this.frame=(this.frame+0.2)%this.frameMax;
+    ctx.fillStyle='red';
+    ctx.fillRect(this.x,this.y-5,this.tam*Math.max(this.vida/150,0),4);
+  }
+}
+
+// Clase Proyectil
+class Proyectil{
+  constructor(x,y,target,daño,color){
+    this.x=x; this.y=y; this.target=target; this.daño=daño; this.color=color; this.vel=5;
+  }
+  mover(){
+    const dx=this.target.x-this.x,dy=this.target.y-this.y,dist=Math.hypot(dx,dy);
+    if(dist<this.vel){
+      this.target.vida-=this.daño;
+      efectos.push(new Efecto(this.target.x,this.target.y,15,30,true));
+      sonidos.impacto.play();
+      return false;
+    }
+    this.x+=dx/dist*this.vel; this.y+=dy/dist*this.vel; return true;
+  }
+  dibujar(){
+    ctx.fillStyle=this.color;
+    ctx.beginPath(); ctx.arc(this.x,this.y,5,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// Clase efecto impacto y muerte
+class Efecto{
+  constructor(x,y,r,t,explosion=false){
+    this.x=x; this.y=y; this.r=r; this.t=t; this.explosion=explosion;
+    if(explosion) sonidos.explosion.play();
+  }
+  dibujar(){
+    ctx.strokeStyle=this.explosion?'orange':'yellow';
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.stroke();
+    this.r+=2; this.t--;
+  }
+}
+
+// Tropas
+let tropas=[];
+
+// Lanzar unidad
+function lanzarUnidad(tipo){
+  const costo = tipo==='tanque'?4:tipo==='rapido'?2:3;
+  if(elixir<costo) return alert("No tienes suficiente elixir");
+  elixir-=costo;
+  sonidos.lanzar.play();
+  const carrilY=carriles[Math.floor(Math.random()*carriles.length)];
+  const x=tipo==='magico'?650:100;
+  const dir=tipo==='magico'?-1:1;
+  tropas.push(new Unidad(x,carrilY,tipo,dir));
+}
+
+// Función batalla
+function battle(){
+  tropas.forEach((u,i)=>{
+    u.mover();
+    const baseTarget=u.direccion===1?baseDer:baseIzq;
+    if(u.x+u.tam>=baseTarget.x && u.x<=baseTarget.x+baseTarget.w && u.y+u.tam>=baseTarget.y && u.y<=baseTarget.y+baseTarget.h){
+      baseTarget.vida-=u.atq;
+      efectos.push(new Efecto(baseTarget.x+baseTarget.w/2,baseTarget.y+baseTarget.h/2,15,30,true));
+      u.vida=0;
+    }
+    tropas.forEach((v,j)=>{if(i===j) return;
+      if(u.direccion!==v.direccion && Math.abs(u.x-v.x)<30 && Math.abs(u.y-v.y)<30){
+        if(u.tipo==='magico') proyectiles.push(new Proyectil(u.x+u.tam/2,u.y+u.tam/2,v,u.atq,'cyan'));
+        else{u.vida-=v.atq; v.vida-=u.atq; efectos.push(new Efecto(u.x,u.y,8,15,true));}
+      }
+    });
+  });
+
+  // Torres
+  torresIzq.forEach(t=>{tropas.forEach(u=>{if(u.direccion===1 && Math.hypot(u.x-t.x,u.y-t.y)<t.rango){
+    if(u.tipo==='magico') proyectiles.push(new Proyectil(t.x+t.w/2,t.y+t.h/2,u,t.ataque,'orange')); else {u.vida-=t.ataque; efectos.push(new Efecto(u.x,u.y,8,15,true));}
+  }});});
+  torresDer.forEach(t=>{tropas.forEach(u=>{if(u.direccion===-1 && Math.hypot(u.x-t.x,u.y-t.y)<t.rango){
+    if(u.tipo==='magico') proyectiles.push(new Proyectil(t.x+t.w/2,t.y+t.h/2,u,t.ataque,'orange')); else {u.vida-=t.ataque; efectos.push(new Efecto(u.x,u.y,8,15,true));}
+  }});});
+
+  proyectiles = proyectiles.filter(p=>p.mover());
+  tropas = tropas.filter(u=>u.vida>0);
+  efectos = efectos.filter(e=>{e.dibujar(); return e.t>0;});
+}
+
+// Dibujar todo
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(sprites.fondo,0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='black'; carriles.forEach(y=>{ctx.beginPath(); ctx.moveTo(0,y+10); ctx.lineTo(canvas.width,y+10); ctx.stroke();});
+  ctx.fillStyle='brown'; ctx.fillRect(baseIzq.x,baseIzq.y,baseIzq.w,baseIzq.h); ctx.fillRect(baseDer.x,baseDer.y,baseDer.w,baseDer.h);
+  ctx.fillStyle='white'; ctx.fillText(`Vida: ${baseIzq.vida}`,baseIzq.x,baseIzq.y-10); ctx.fillText(`Vida: ${baseDer.vida}`,baseDer.x,baseDer.y-10);
+  torresIzq.forEach(t=>ctx.drawImage(sprites.torre,t.x,t.y,t.w,t.h));
+  torresDer.forEach(t=>ctx.drawImage(sprites.torre,t.x,t.y,t.w,t.h));
+  tropas.forEach(u=>u.dibujar());
+  proyectiles.forEach(p=>p.dibujar());
+}
+
+// Loop principal
+function gameLoop(){battle(); draw(); requestAnimationFrame(gameLoop);}
+gameLoop();
+</script>
+</body>
+</html>
