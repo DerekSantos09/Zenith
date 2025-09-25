@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zenith - Mapas Mentales y Conceptuales</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: #1e1e1e;
+      color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+    }
+
+    header {
+      background: #0d6efd;
+      width: 100%;
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    }
+
+    #mapaCanvas {
+      background: #2b2b2b;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      cursor: grab;
+    }
+
+    .controls {
+      margin-bottom: 1rem;
+      text-align: center;
+    }
+
+    input, button {
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: none;
+      margin: 0.3rem;
+      font-size: 1rem;
+    }
+
+    button {
+      background: #0d6efd;
+      color: #fff;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #0b5ed7;
+    }
+  </style>
+</head>
+<body>
+  <header>Zenith - Generador de Mapas Mentales y Conceptuales</header>
+
+  <div class="controls">
+    <input type="text" id="textoNodo" placeholder="Escribe una idea...">
+    <button onclick="agregarNodo()">➕ Agregar nodo</button>
+    <button onclick="modoConexion()">🔗 Conectar nodos</button>
+  </div>
+
+  <canvas id="mapaCanvas" width="900" height="550"></canvas>
+
+  <script>
+    const canvas = document.getElementById("mapaCanvas");
+    const ctx = canvas.getContext("2d");
+
+    let nodos = [{texto: "Idea Central", x: 450, y: 275}];
+    let conexiones = [];
+
+    let arrastrando = null;
+    let offsetX = 0, offsetY = 0;
+    let conectando = false;
+    let nodoSeleccionado = null;
+
+    function dibujar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Dibujar conexiones
+      conexiones.forEach(c => {
+        const n1 = nodos[c.desde];
+        const n2 = nodos[c.hacia];
+        ctx.beginPath();
+        ctx.moveTo(n1.x, n1.y);
+        ctx.lineTo(n2.x, n2.y);
+        ctx.strokeStyle = "#aaa";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      });
+
+      // Dibujar nodos
+      nodos.forEach((n, i) => {
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, 50, 0, Math.PI * 2);
+        ctx.fillStyle = "#0d6efd";
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = "14px Arial";
+        ctx.fillText(n.texto, n.x, n.y);
+
+        // Marcar el nodo seleccionado para conexión
+        if (nodoSeleccionado === i && conectando) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, 55, 0, Math.PI * 2);
+          ctx.strokeStyle = "yellow";
+          ctx.lineWidth = 3;
+          ctx.stroke();
+        }
+      });
+    }
+
+    function agregarNodo() {
+      const texto = document.getElementById("textoNodo").value.trim();
+      if (!texto) return;
+
+      // Posición aleatoria
+      const x = Math.random() * (canvas.width - 100) + 50;
+      const y = Math.random() * (canvas.height - 100) + 50;
+
+      nodos.push({texto, x, y});
+      dibujar();
+      document.getElementById("textoNodo").value = "";
+    }
+
+    function detectarNodo(x, y) {
+      for (let i = 0; i < nodos.length; i++) {
+        const n = nodos[i];
+        const dx = x - n.x;
+        const dy = y - n.y;
+        if (Math.sqrt(dx*dx + dy*dy) < 50) {
+          return i;
+        }
+      }
+      return null;
+    }
+
+    function modoConexion() {
+      conectando = !conectando;
+      nodoSeleccionado = null;
+      alert(conectando ? "Modo conexión activado: haz clic en dos nodos para conectarlos 🔗" : "Modo conexión desactivado");
+    }
+
+    // Eventos de mouse
+    canvas.addEventListener("mousedown", e => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      const nodo = detectarNodo(x, y);
+
+      if (conectando) {
+        if (nodo !== null) {
+          if (nodoSeleccionado === null) {
+            nodoSeleccionado = nodo;
+          } else {
+            if (nodoSeleccionado !== nodo) {
+              conexiones.push({desde: nodoSeleccionado, hacia: nodo});
+            }
+            nodoSeleccionado = null;
+          }
+          dibujar();
+        }
+      } else {
+        if (nodo !== null) {
+          arrastrando = nodo;
+          offsetX = x - nodos[nodo].x;
+          offsetY = y - nodos[nodo].y;
+          canvas.style.cursor = "grabbing";
+        }
+      }
+    });
+
+    canvas.addEventListener("mousemove", e => {
+      if (arrastrando !== null) {
+        const rect = canvas.getBoundingClientRect();
+        nodos[arrastrando].x = e.clientX - rect.left - offsetX;
+        nodos[arrastrando].y = e.clientY - rect.top - offsetY;
+        dibujar();
+      }
+    });
+
+    canvas.addEventListener("mouseup", () => {
+      arrastrando = null;
+      canvas.style.cursor = "grab";
+    });
+
+    // Inicial
+    dibujar();
+  </script>
+</body>
+</html>
