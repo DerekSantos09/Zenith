@@ -224,14 +224,16 @@ const carrilH = 64;
 const baseIzq = {x:60,y:90,w:52,h:180,vida:500,vidaMax:500};
 const baseDer = {x:canvas.width-112,y:90,w:52,h:180,vida:500,vidaMax:500};
 
+// Torres con vida persistente y mejoras
+const torreIzq = {x:0, y:115, w:38, h:38, vida:130, vidaMax:130, ataque:16, rango:160, cd:0};
+const torreDer = {x:0, y:115, w:38, h:38, vida:130, vidaMax:130, ataque:16, rango:160, cd:0};
+let torresIzq = [torreIzq];
+let torresDer = [torreDer];
+
 // Proyectiles, efectos y tropas
 let proyectiles = [];
 let efectos = [];
 let tropas=[];
-
-// Torres como objetos globales, pero su posición se recalcula dinámicamente
-let torresIzq = [{}];
-let torresDer = [{}];
 
 // Elixir
 let elixirPlayer = 10, elixirPlayerMax = 10;
@@ -336,8 +338,12 @@ class Unidad{
     this.frame=0; this.frameMax=5;
     this.cd=0;
     this.dañoAnim=0;
+    this.atacandoTorre = false;
   }
-  mover(){ this.x += this.vel*this.direccion; }
+  mover(){ 
+    // Si está atacando una torre, no se mueve
+    if(!this.atacandoTorre) this.x += this.vel*this.direccion; 
+  }
   dibujar(){
     ctx.save();
     ctx.globalAlpha = 0.34;
@@ -347,7 +353,6 @@ class Unidad{
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    // Cuerpo principal (cartoon)
     let grad;
     if(this.tipo==="tanque"){
       grad = ctx.createLinearGradient(this.x,this.y,this.x+this.tam,this.y+this.tam);
@@ -499,21 +504,62 @@ function lanzarUnidadIA(){
   lanzarUnidad(tipo, x, carrilY, "der");
 }
 
-// Función batalla principal igual que antes
-
+// Función batalla principal
 function battle(){
   tropas.forEach((u,i)=>{
     if(u.cd>0) u.cd--;
-    u.mover();
-    // Ataca base
+
+    // --- ATACAR TORRE primero si está viva y la tropa la toca ---
+    let torreTarget = null;
+    if(u.direccion === 1) { // Tropas azules atacan torre derecha
+      if (
+        torreDer.vida > 0 &&
+        u.x+u.tam >= torreDer.x && u.x <= torreDer.x+torreDer.w &&
+        u.y+u.tam >= torreDer.y && u.y <= torreDer.y+torreDer.h
+      ) {
+        torreTarget = torreDer;
+      }
+    }
+    if(u.direccion === -1) { // Tropas rojas atacan torre izquierda
+      if (
+        torreIzq.vida > 0 &&
+        u.x <= torreIzq.x+torreIzq.w && u.x+u.tam >= torreIzq.x &&
+        u.y+u.tam >= torreIzq.y && u.y <= torreIzq.y+torreIzq.h
+      ) {
+        torreTarget = torreIzq;
+      }
+    }
+    if (torreTarget) {
+      u.atacandoTorre = true;
+      if (u.cd <= 0) {
+        torreTarget.vida -= u.atq;
+        efectos.push(new Efecto(torreTarget.x+torreTarget.w/2, torreTarget.y+torreTarget.h/2, 18, 15, true));
+        torreTarget.vida = Math.max(0, torreTarget.vida);
+        u.cd = 18+Math.floor(Math.random()*4); // cooldown ataque
+      }
+      if (torreTarget.vida <= 0) {
+        torreTarget.vida = 0;
+        u.atacandoTorre = false; // cuando la torre muere, sigue avanzando
+      }
+      return; // NO atacar base ni tropas ese frame mientras ataca torre
+    } else {
+      u.atacandoTorre = false; // si no hay torre, puede moverse
+    }
+
+    // --- ATACAR BASE si no hay torre y está tocando base ---
     const baseTarget = u.direccion===1?baseDer:baseIzq;
     if(u.x+u.tam>=baseTarget.x && u.x<=baseTarget.x+baseTarget.w && u.y+u.tam>=baseTarget.y && u.y<=baseTarget.y+baseTarget.h){
-      baseTarget.vida-=u.atq;
-      efectos.push(new Efecto(baseTarget.x+baseTarget.w/2,baseTarget.y+baseTarget.h/2,24,25,true));
-      u.vida=0;
-      baseTarget.vida = Math.max(0, baseTarget.vida);
-      updateStatusPanel();
+      if (u.cd <= 0) {
+        baseTarget.vida-=u.atq;
+        efectos.push(new Efecto(baseTarget.x+baseTarget.w/2,baseTarget.y+baseTarget.h/2,24,25,true));
+        u.cd = 18+Math.floor(Math.random()*4);
+        baseTarget.vida = Math.max(0, baseTarget.vida);
+        updateStatusPanel();
+        u.vida = 0; // muere tras atacar base
+      }
+      return;
     }
+
     // Ataca tropas del lado opuesto
     tropas.forEach((v,j)=>{
       if(i===j) return;
@@ -542,9 +588,10 @@ function battle(){
     });
   });
 
-  // Torres
+  // Torres disparan a tropas (igual que antes)
   torresIzq.forEach((t,idx)=>{
     if(t.cd>0) t.cd--;
+    if(t.vida<=0) return;
     tropas.forEach(u=>{
       if(u.direccion===-1){
         if(Math.hypot(u.x+u.tam/2-t.x-t.w/2, u.y+u.tam/2-t.y-t.h/2)<t.rango && t.cd<=0){
@@ -561,6 +608,7 @@ function battle(){
   });
   torresDer.forEach((t,idx)=>{
     if(t.cd>0) t.cd--;
+    if(t.vida<=0) return;
     tropas.forEach(u=>{
       if(u.direccion===1){
         if(Math.hypot(u.x+u.tam/2-t.x-t.w/2, u.y+u.tam/2-t.y-t.h/2)<t.rango && t.cd<=0){
@@ -640,6 +688,8 @@ function hideOverlay(){
 function restartGame(){
   baseIzq.vida = baseIzq.vidaMax;
   baseDer.vida = baseDer.vidaMax;
+  torreIzq.vida = torreIzq.vidaMax;
+  torreDer.vida = torreDer.vidaMax;
   tropas = []; proyectiles = []; efectos = [];
   elixirPlayer = elixirPlayerMax;
   elixirAI = elixirAIMax;
@@ -699,14 +749,24 @@ function draw(){
   drawBarraVida(baseIzq.x, baseIzq.y-19, baseIzq.w, 10, baseIzq.vida, baseIzq.vidaMax, "#3a7bd5");
   drawBarraVida(baseDer.x, baseDer.y-19, baseDer.w, 10, baseDer.vida, baseDer.vidaMax, "#ff5e62");
 
-  // Torres: recalcula su posición en función del ancho del canvas
+  // Torres: recalcula su posición en función del ancho del canvas, pero NO reinicia vida
   let leftTorreX = canvas.width*0.22;
   let rightTorreX = canvas.width*0.78-38;
-  torresIzq[0] = {x:leftTorreX, y:115, w:38, h:38, vida:130, ataque:16, rango:160, cd:0};
-  torresDer[0] = {x:rightTorreX, y:115, w:38, h:38, vida:130, ataque:16, rango:160, cd:0};
+  torreIzq.x = leftTorreX;
+  torreDer.x = rightTorreX;
 
-  torresIzq.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#69f"));
-  torresDer.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#f23"));
+  torresIzq[0] = torreIzq;
+  torresDer[0] = torreDer;
+
+  // Torres y su barra de vida
+  torresIzq.forEach(t=>{
+    drawTorre(t.x,t.y,t.w,t.h,"#69f");
+    drawBarraVida(t.x, t.y-13, t.w, 8, t.vida, t.vidaMax, "#69f");
+  });
+  torresDer.forEach(t=>{
+    drawTorre(t.x,t.y,t.w,t.h,"#f23");
+    drawBarraVida(t.x, t.y-13, t.w, 8, t.vida, t.vidaMax, "#f23");
+  });
 
   // Tropas
   tropas.forEach(u=>u.dibujar());
