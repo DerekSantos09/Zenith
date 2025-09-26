@@ -15,7 +15,7 @@ body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;background:linea
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
 .topbar h1{margin:0;font-size:20px}
 .controls{display:flex;gap:8px;align-items:center}
-.controls select, .controls button{background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent);border:1px solid rgba(255,255,255,0.04);color:var(--text);padding:8px 10px;border-radius:8px;}
+.controls select, .controls button{background:linear-gradient(180deg, rgba(255,255,255,0.03), transparent);border:1px solid rgba(255,255,255,0.04);color:var(--text);padding:8px 10px;border-radius:8px;font-size:15px;}
 .main{display:flex;flex-direction:column;gap:12px}
 .board-wrap{display:flex;gap:18px;align-items:flex-start}
 .board{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:14px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6)}
@@ -202,23 +202,27 @@ function generateFullBoard() {
   return grid;
 }
 
-// Quitar números según dificultad
+// Nueva función de generación de puzzle según dificultad: número de celdas vacías
 function generatePuzzle(difficulty = "medium") {
   let full = generateFullBoard();
   let puzzle = full.map(r => [...r]);
 
-  let attempts = { easy: 35, medium: 45, hard: 55, expert: 60 }[difficulty] || 45;
+  // Números de celdas VACÍAS por dificultad
+  let emptyCells = { easy: 35, medium: 45, hard: 55, expert: 60 }[difficulty] || 45;
+  let removed = 0;
+  let attempts = 81 * 2; // Limitar intentos para evitar bucle infinito
 
-  while (attempts > 0) {
+  while (removed < emptyCells && attempts > 0) {
     let r = Math.floor(Math.random() * 9);
     let c = Math.floor(Math.random() * 9);
-    while (puzzle[r][c] === 0) {
-      r = Math.floor(Math.random() * 9);
-      c = Math.floor(Math.random() * 9);
+    if (puzzle[r][c] === 0) {
+      attempts--;
+      continue;
     }
     let backup = puzzle[r][c];
     puzzle[r][c] = 0;
 
+    // Chequeo de unicidad de solución
     let copy = puzzle.map(r => [...r]);
     let solutions = 0;
     function solveCount(b) {
@@ -237,12 +241,15 @@ function generatePuzzle(difficulty = "medium") {
         }
       }
       solutions++;
+      if (solutions > 1) return; // Early exit
     }
     solveCount(copy);
     if (solutions !== 1) {
-      puzzle[r][c] = backup;
-      attempts--;
+      puzzle[r][c] = backup; // Restore, no único
+    } else {
+      removed++;
     }
+    attempts--;
   }
   return { puzzle, solution: full };
 }
