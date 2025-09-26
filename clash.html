@@ -543,7 +543,8 @@ function battle(){
       }
       return; // NO atacar base ni tropas ese frame mientras ataca torre
     } else {
-      u.atacandoTorre = false; // si no hay torre, puede moverse
+      u.atacandoTorre = false;
+      u.mover(); // ¡AQUÍ SE CORRIGE EL MOVIMIENTO!
     }
 
     // --- ATACAR BASE si no hay torre y está tocando base ---
