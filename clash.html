@@ -187,9 +187,8 @@ body {
 </div>
 
 <script>
-// --- Constantes de Arte y Colores ---
 const COLORS = {
-  fondo: ['#b0eaff','#b4ffb9'], // gradiente
+  fondo: ['#b0eaff','#b4ffb9'],
   carriles: ['#a8e063','#56ab2f'],
   base_azul: '#3a7bd5',
   base_rojo: '#ff5e62',
@@ -216,25 +215,25 @@ const NOMBRES = {
   minipekka: 'Mini PEKKA'
 };
 
-// --- Canvas y contexto ---
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
-// --- Carriles ---
+// Carriles y bases
 const carriles = [70, 170, 270];
 const carrilH = 64;
-
-// --- Bases y Torres ---
 const baseIzq = {x:60,y:90,w:52,h:180,vida:500,vidaMax:500};
 const baseDer = {x:canvas.width-112,y:90,w:52,h:180,vida:500,vidaMax:500};
-const torresIzq = [{x:180,y:115,w:38,h:38,vida:130,ataque:16,rango:160,cd:0}];
-const torresDer = [{x:canvas.width-218,y:115,w:38,h:38,vida:130,ataque:16,rango:160,cd:0}];
 
-// --- Proyectiles y efectos ---
+// Proyectiles, efectos y tropas
 let proyectiles = [];
 let efectos = [];
+let tropas=[];
 
-// --- Sistema de elixir (jugador y IA) ---
+// Torres como objetos globales, pero su posición se recalcula dinámicamente
+let torresIzq = [{}];
+let torresDer = [{}];
+
+// Elixir
 let elixirPlayer = 10, elixirPlayerMax = 10;
 let elixirAI = 10, elixirAIMax = 10;
 let elixirBar = document.getElementById('elixirBar');
@@ -260,7 +259,6 @@ function updateElixirUI() {
   elixirBar.style.background = percent === 1
     ? 'linear-gradient(90deg,#6ef4ff 0%,#ffd700 100%)'
     : 'linear-gradient(90deg,#6ef4ff 0%,#a66bff 100%)';
-
   // IA
   let percentAI = (elixirAI/elixirAIMax);
   elixirBarIA.style.width = (percentAI*100)+"%";
@@ -270,7 +268,7 @@ function updateElixirUI() {
     : 'linear-gradient(90deg,#ffb9c3 0%,#ff8f8f 100%)';
 }
 
-// --- Sonidos (más cartoon) ---
+// Sonidos
 const sonidos = {
   lanzar: new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa6f7e.mp3"),
   impacto: new Audio("https://cdn.pixabay.com/audio/2022/02/23/audio_115bfa6b7d.mp3"),
@@ -279,7 +277,7 @@ const sonidos = {
   derrota: new Audio("https://cdn.pixabay.com/audio/2022/07/26/audio_124bfa6f7e.mp3")
 };
 
-// --- Selección de unidad y despliegue con click ---
+// Selección de unidad y despliegue con click
 let unidadSeleccionada = null;
 function seleccionarUnidad(tipo){
   if(unidadSeleccionada === tipo) {
@@ -295,7 +293,7 @@ canvas.addEventListener('click', function(e){
   if(!unidadSeleccionada) return;
   let rect = canvas.getBoundingClientRect();
   let x = e.clientX - rect.left, y = e.clientY - rect.top;
-  if(x > canvas.width/2 - 30) return; // solo tu lado (izquierda)
+  if(x > canvas.width/2) return; // solo tu lado (izquierda)
   lanzarUnidad(unidadSeleccionada, x, y, "izq");
   seleccionarUnidad(null);
 });
@@ -324,7 +322,7 @@ function lanzarUnidad(tipo, x, y, side){
   tropas.push(new Unidad(x, bestY, tipo, side=="izq"?1:-1, side));
 }
 
-// --- Clase Unidad (ahora soporta más tipos) ---
+// Clase Unidad
 class Unidad{
   constructor(x,y,tipo,direccion,side){
     this.x=x; this.y=y; this.tipo=tipo; this.direccion=direccion; this.side=side;
@@ -444,7 +442,8 @@ class Unidad{
   }
 }
 
-// --- Clase Proyectil ---
+// Proyectil y efecto igual...
+
 class Proyectil{
   constructor(x,y,target,daño,color){
     this.x=x; this.y=y; this.target=target; this.daño=daño; this.color=color; this.vel=6;
@@ -471,8 +470,6 @@ class Proyectil{
     ctx.restore();
   }
 }
-
-// --- Efecto explosiones y partículas ---
 class Efecto{
   constructor(x,y,r,t,explosion=false){
     this.x=x; this.y=y; this.r=r; this.t=t; this.explosion=explosion;
@@ -489,25 +486,21 @@ class Efecto{
   }
 }
 
-// --- Tropas ---
-let tropas=[];
-
-// --- Lanzar unidad IA ---
+// Lanzar unidad IA
 function lanzarUnidadIA(){
   if(baseDer.vida<=0) return;
-  // Decide tipo y costo
   let tipos = ['tanque','rapido','magico','arquero','gigante','minipekka'];
   let tipo = tipos[Math.floor(Math.random()*tipos.length)];
   const costos = { tanque:4, rapido:2, magico:3, arquero:2, gigante:6, minipekka:5 };
   let costo = costos[tipo]||3;
   if(elixirAI < costo) return;
-  // Carril random, x random pero solo en su mitad
   const carrilY = carriles[Math.floor(Math.random()*carriles.length)];
   let x = canvas.width - 130 - Math.random()*40;
   lanzarUnidad(tipo, x, carrilY, "der");
 }
 
-// --- Función batalla principal ---
+// Función batalla principal igual que antes
+
 function battle(){
   tropas.forEach((u,i)=>{
     if(u.cd>0) u.cd--;
@@ -550,10 +543,26 @@ function battle(){
   });
 
   // Torres
-  [...torresIzq, ...torresDer].forEach((t,idx)=>{
+  torresIzq.forEach((t,idx)=>{
     if(t.cd>0) t.cd--;
     tropas.forEach(u=>{
-      if( (idx===0 && u.direccion===-1) || (idx===1 && u.direccion===1) ){
+      if(u.direccion===-1){
+        if(Math.hypot(u.x+u.tam/2-t.x-t.w/2, u.y+u.tam/2-t.y-t.h/2)<t.rango && t.cd<=0){
+          if(u.tipo==='magico'){
+            proyectiles.push(new Proyectil(t.x+t.w/2,t.y+t.h/2,u,t.ataque,'#ffbc00'));
+          } else {
+            u.vida-=t.ataque; u.dañoAnim = 4;
+            efectos.push(new Efecto(u.x+u.tam/2,u.y+u.tam/2,12,8,true));
+          }
+          t.cd=28+Math.floor(Math.random()*6);
+        }
+      }
+    });
+  });
+  torresDer.forEach((t,idx)=>{
+    if(t.cd>0) t.cd--;
+    tropas.forEach(u=>{
+      if(u.direccion===1){
         if(Math.hypot(u.x+u.tam/2-t.x-t.w/2, u.y+u.tam/2-t.y-t.h/2)<t.rango && t.cd<=0){
           if(u.tipo==='magico'){
             proyectiles.push(new Proyectil(t.x+t.w/2,t.y+t.h/2,u,t.ataque,'#ffbc00'));
@@ -570,49 +579,6 @@ function battle(){
   proyectiles = proyectiles.filter(p=>p.mover());
   tropas = tropas.filter(u=>u.vida>0);
   efectos = efectos.filter(e=>{e.dibujar(); return e.t>0;});
-}
-
-// --- Dibujar todo ---
-function draw(){
-  // Fondo colorido
-  let bgGrad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
-  bgGrad.addColorStop(0,COLORS.fondo[0]);
-  bgGrad.addColorStop(1,COLORS.fondo[1]);
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
-
-  // Carriles
-  for(let i=0; i<carriles.length; i++){
-    let grad = ctx.createLinearGradient(0,0,canvas.width,0);
-    grad.addColorStop(0,COLORS.carriles[0]);
-    grad.addColorStop(1,COLORS.carriles[1]);
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, carriles[i], canvas.width, carrilH-14);
-    ctx.save();
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = "#000";
-    ctx.fillRect(0, carriles[i]+carrilH-14, canvas.width, 6);
-    ctx.restore();
-  }
-
-  // Bases
-  drawBase(baseIzq.x, baseIzq.y, baseIzq.w, baseIzq.h, COLORS.base_azul, "izq");
-  drawBase(baseDer.x, baseDer.y, baseDer.w, baseDer.h, COLORS.base_rojo, "der");
-
-  // Vida bases
-  drawBarraVida(baseIzq.x, baseIzq.y-19, baseIzq.w, 10, baseIzq.vida, baseIzq.vidaMax, "#3a7bd5");
-  drawBarraVida(baseDer.x, baseDer.y-19, baseDer.w, 10, baseDer.vida, baseDer.vidaMax, "#ff5e62");
-
-  // Torres
-  torresIzq.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#69f"));
-  torresDer.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#f23"));
-
-  // Tropas
-  tropas.forEach(u=>u.dibujar());
-  // Proyectiles
-  proyectiles.forEach(p=>p.dibujar());
-  // Efectos
-  efectos.forEach(e=>e.dibujar());
 }
 
 // --- Barra de vida ---
@@ -701,10 +667,80 @@ function gameLoop(){
   if(Math.random()<0.015 && elixirAI>=2) lanzarUnidadIA();
   requestAnimationFrame(gameLoop);
 }
+
+// --- Dibujo del juego principal ---
+function draw(){
+  // Fondo colorido
+  let bgGrad = ctx.createLinearGradient(0,0,canvas.width,canvas.height);
+  bgGrad.addColorStop(0,COLORS.fondo[0]);
+  bgGrad.addColorStop(1,COLORS.fondo[1]);
+  ctx.fillStyle = bgGrad;
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // Carriles
+  for(let i=0; i<carriles.length; i++){
+    let grad = ctx.createLinearGradient(0,0,canvas.width,0);
+    grad.addColorStop(0,COLORS.carriles[0]);
+    grad.addColorStop(1,COLORS.carriles[1]);
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, carriles[i], canvas.width, carrilH-14);
+    ctx.save();
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, carriles[i]+carrilH-14, canvas.width, 6);
+    ctx.restore();
+  }
+
+  // Bases
+  drawBase(baseIzq.x, baseIzq.y, baseIzq.w, baseIzq.h, COLORS.base_azul, "izq");
+  drawBase(baseDer.x, baseDer.y, baseDer.w, baseDer.h, COLORS.base_rojo, "der");
+
+  // Vida bases
+  drawBarraVida(baseIzq.x, baseIzq.y-19, baseIzq.w, 10, baseIzq.vida, baseIzq.vidaMax, "#3a7bd5");
+  drawBarraVida(baseDer.x, baseDer.y-19, baseDer.w, 10, baseDer.vida, baseDer.vidaMax, "#ff5e62");
+
+  // Torres: recalcula su posición en función del ancho del canvas
+  let leftTorreX = canvas.width*0.22;
+  let rightTorreX = canvas.width*0.78-38;
+  torresIzq[0] = {x:leftTorreX, y:115, w:38, h:38, vida:130, ataque:16, rango:160, cd:0};
+  torresDer[0] = {x:rightTorreX, y:115, w:38, h:38, vida:130, ataque:16, rango:160, cd:0};
+
+  torresIzq.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#69f"));
+  torresDer.forEach(t=>drawTorre(t.x,t.y,t.w,t.h,"#f23"));
+
+  // Tropas
+  tropas.forEach(u=>u.dibujar());
+  // Proyectiles
+  proyectiles.forEach(p=>p.dibujar());
+  // Efectos
+  efectos.forEach(e=>e.dibujar());
+}
+
+// --- Bases cartoon ---
+function drawBase(x, y, w, h, color, side){
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.strokeStyle = "#fff";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(x, y+h);
+  ctx.lineTo(x+w, y+h);
+  ctx.lineTo(x+w-8, y+18);
+  ctx.lineTo(x+8, y+18);
+  ctx.closePath();
+  ctx.shadowColor="#fff9"; ctx.shadowBlur=15;
+  ctx.fill();
+  ctx.shadowBlur=0;
+  ctx.stroke();
+  // Puerta
+  ctx.fillStyle="#eee";
+  ctx.fillRect(x+w/2-10, y+h-30, 20, 30);
+  ctx.restore();
+}
+
 updateStatusPanel();
 updateElixirUI();
 gameLoop();
-
 </script>
 </body>
 </html>
